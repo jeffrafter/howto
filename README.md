@@ -11,10 +11,10 @@ Also, I break all of my own rules all the time.
 Here is the rough table of contents that I want to cover:
 
 * Getting your development environment setup
-* Starting a Rails app
-* Git
-* Vagrant
-* Chef, Ansible, Puppet, etc. etc.
+* [Starting a Rails app](starting_a_rails_app.md) Basic start and repository
+* [Git](git.md) Making changes and reviewing code
+* [Vagrant](vagrant.md) Testing server infrastructure locally
+* [Provisioning](provisioning.md) Chef, Berkshelf, knife, etc. etc.
 * The Cloud
 * Deploying to Heroku
 * Deploying to Linode

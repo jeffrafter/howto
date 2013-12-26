@@ -82,6 +82,7 @@ By default, I setup a server to use Ruby (via rbenv), Postgres, Redis, and Nginx
 
     # Basic server information
     cookbook 'apt'
+    cookbook 'ntp'
     cookbook 'cron'
     cookbook 'sudo'
     cookbook 'users'
@@ -112,7 +113,7 @@ Copy this into your `Berksfile` and then (from within your `chef` folder) run:
     
 ### Data bags
 
-At this point it best to get some of the basic configuration setup. Most of this is managed via JSON in files called "data bags". Any information that will be used across all of your server instances can be setup inside of a file called `data_bags/YOURAPP.json`. In this case `data_bags/sample.json`. Really, you can call the file whatever you like, this is just convention.
+At this point it best to get some of the basic configuration setup. Most of this is managed via JSON in files called "data bags". Any information that will be used across all of your server instances can be setup inside of a file called `data_bags/default/YOURAPP.json`. In this case `data_bags/default/sample.json`. Really, you can call the file whatever you like, this is just convention.
 
     {
       "app": {
@@ -265,6 +266,7 @@ Roles are simple groupings of cookbooks that run on specific kinds of servers (f
     run_list(
       'recipe[vim]',
       'recipe[chef-solo-search]',
+      'recipe[ntp]',
       'recipe[cron]',
       'recipe[sudo]',
       'recipe[users]',
@@ -418,6 +420,11 @@ Next we setup some defaults for the Postgres configuration (using some of the en
 
 With the attributes setup, we can create the default recipe. I tend to add everything I need into the default recipe. You could split the recipe into separate files (for example, shell.rb, database.rb, application.rb, etc.) and then include those with `include_recipe` but the organization is already somewhat Byzantine so I keep it all together. Add the following to the file `site-cookbooks/sample/recipes/default.rb`:
 
+    ## Default attributes
+    #
+    default_data_bag = data_bag_item("default", "sample")
+    node.default_attrs = Chef::Mixin::DeepMerge.merge(node.default_attrs, default_data_bag.to_hash)
+
     ## Shell
     #
     template ".inputrc" do
@@ -545,8 +552,9 @@ With the attributes setup, we can create the default recipe. I tend to add every
       EOH
     end
 
-There are six main sections here:
+There are seven main sections here:
 
+* __Default attributes__: this loads the information from the default data bag and merges the values into our current node.
 * __Shell__: this just sets up a .inputrc file which provides some helpful defaults when you are SSH'd into the machine (which you shouldn't need to do). You could omit this.
 * __Database__: this section sets up the database users and connection information. You only need this on the database servers, so splitting this out to a separate recipe might be useful. You could also surround this with a test for the current role.
 * __Application__: this sets up the default folders for the application deployment. On some servers you won't need this (i.e., a web server acting only as a proxy or a database server on it's own).
@@ -647,6 +655,62 @@ The `inputrc` template is really just a set of my preferences:
     $if Bash
       Space: magic-space
     $endif
+
+### Bootstrapping and Provisioning your Vagrant Box
+
+If you followed the steps from [Vagrant](vagrant.md) how-to then you should have a running vagrant box. You might have halted the box:
+
+    # Go to your Rails root
+    cd /projects/sample
+    vagrant up
+    
+If you see a message that vagrant is already running that is fine.
+
+Great, you should now have a running vagrant box. Now we need to bootstrap the box with the basics we need to run our chef scripts. 
+
+> Note: At this point you can use the built-in tools to bootstrap the server, or you can define your own template. For an example of this see [Advanced Bootstrapping](advanced_bootrapping.md) instead of using the following command.
+
+Knife allows you to "prepare" the box (which will setup chef and ruby):
+
+    cd chef
+    knife solo prepare vagrant@dev.sample.com -p 2222 -VV --identity-file ~/.vagrant.d/insecure_private_key
+
+Notice that we used the `vagrant` user to prepare. By default this user is built in to Vagrant. If you are prompted with a password (for sudo) it should be "vagrant". We also specified that the SSH session will happen on port 2222 which we bound in the `Vagrantfile`.
+
+In the above command we've turned on -VV (two capital letter 'V') for very verbose output, though this is not necessary. Some of the chef commands take a really long time and this helps to see how far along things are. When chef runs initially it is compiling packages and is slow, so be patient. To improve the performance see the notes on Packer and [CheckIntall](checkinstall.md). Once complete you'll see:
+
+    DEBUG: Node config 'nodes/dev.sample.com.json' already exists
+
+Which means your Vagrant box is ready for provisioning. In order to actually run the provisioning you'll need the `encrypted_data_bag_secret` file in the `chef/.chef` folder. You created this above so you have a copy, but this isn't included in the repository for security reasons. So if other members of your team want to provision they will need this file.
+
+Once you have _prepared_ the vagrant box you should be able to _cook_ it:
+
+    knife solo cook vagrant@dev.sample.com -p 2222 --identity-file ~/.vagrant.d/insecure_private_key
+
+
+Cooking the Vagrant runs all of the chef scripts. Doing this adds a `sample` user to the box and, assuming your public key is added in `chef/data_bags/users/sample.json` you will be able to SSH directly to the box.
+
+    ssh -p 2222 sample@dev.sample.com
+
+Now, you can recook the box as needed (note you have to use `dev.sample.com` to match the name of the node and you'll want to use the newly created `sample` user):
+
+    knife solo cook sample@dev.sample.com -p 2222
+
+This process should be pretty fast.
+
+
+## TODO
+
+* Look into custom bootstrap script here https://github.com/opscode/chef/blob/master/lib/chef/knife/bootstrap/ubuntu12.04-gems.erb
+
+
+knife bootstrap --template-file bootstrap/ubuntu-12.04-lts.erb -u vagrant dev.exposely.com echo '{"run_list":[]}' > nodes/dev.exposely.com.json
+
+knife bootstrap --template-file bootstrap/ubuntu-12.04-lts.erb -p 2222 -u vagrant dev.exposely.com  --identity-file ~/.vagrant.d/insecure_private_key
+
+
+knife bootstrap --template-file bootstrap/ubuntu-12.04-lts.erb -p 2222 -u root dev.exposely.com  -i ~/.vagrant.d/insecure_private_key
+
 
 
 ## Resources
