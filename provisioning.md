@@ -78,10 +78,11 @@ By default, I setup a server to use Ruby (via rbenv), Postgres, Redis, and Nginx
     site :opscode
 
     # When using knife solo you need chef-solo-search
-    cookbook 'chef-solo-search', git: "https://github.com/edelight/chef-solo-search.git"
+    cookbook 'chef-solo-search', git: "https://github.com/edelight/chef-solo-search"
 
     # Basic server information
     cookbook 'apt'
+    cookbook 'iptables', git: 'https://github.com/jeffrafter/iptables'
     cookbook 'ntp'
     cookbook 'cron'
     cookbook 'sudo'
@@ -111,21 +112,37 @@ Copy this into your `Berksfile` and then (from within your `chef` folder) run:
 
     `berks install`
     
-### Data bags
+### Nodes
 
-At this point it best to get some of the basic configuration setup. Most of this is managed via JSON in files called "data bags". Any information that will be used across all of your server instances can be setup inside of a file called `data_bags/default/YOURAPP.json`. In this case `data_bags/default/sample.json`. Really, you can call the file whatever you like, this is just convention.
+At this point it best to get some of the basic configuration setup. Most of this is managed via JSON in files called "data bags", "nodes", "environments" and "roles".
+
+Nodes represent actual servers. When working with a small number of nodes (1-3) this is fairly simple to manage. As the complexity of the system increases and you have multiple app nodes, multiple worker nodes, and need to rely on coordination and service discovery this pattern will probably fall apart. At that point you might want something like Synapse. For now we will start simple.
+
+The first node you should create is a local node for your vagrant box. The name of the node must correspond to the address of the node and you can do this in a couple of ways:
+
+1. You could name the node 127.0.0.1.json knowing you will provision to your local.
+2. You could create an entry in your `/etc/hosts` file to give a resolvable domain and name your node correspondingly.
+3. You could create an actual DNS entry for your domain which points to 127.0.0.1 and name your node correspondingly.
+
+There are a couple of additional options here which involve DNS, resolvers, etc. But we'll go the easy route and choose option 2. To edit your `/etc/hosts` file you'll need to use `sudo`. This is generally considered bad form as you never want to use `sudo`:
+
+    sudo vim /etc/hosts
+    
+Add the following entry:
+
+    127.0.0.1 dev.YOURDOMAIN.com
+    
+You could, in theory bind to 0.0.0.0 which would bind to all interfaces. But this keeps things a little more specific to loopbacks.
+
+Now, to create the node (in your `chef` folder) add the file `nodes/dev.YOURDOMAIN.com.json`:
 
     {
       "app": {
         "name": "sample"
       },
-      "authorization": {
-        "sudo": {
-          "passwordless": true
-        }
-      },
       "sample": {
         "deploy_to": "/var/www/sample",
+        "environment": "production",
         "user": "sample",
         "group": "sample",
         "database": {
@@ -164,20 +181,45 @@ At this point it best to get some of the basic configuration setup. Most of this
         }
       },
       "monit": {
-        "notify_email": "YOUREMAIL@YOURDOMAIN.com"
-      },
-      "build_essential": {
-        "compiletime": true
+        "notify_email": "ops@sample.com"
       },
       "cron": {
         "tasks": [
         ]
       },
+      "authorization": {
+        "sudo": {
+          "users": ["vagrant"],
+          "passwordless": true
+        }
+      },
+      "build_essential": {
+        "compiletime": true
+      },
       "run_list": [
+        "role[base]",
+        "role[web]",
+        "role[data]",
+        "role[app]",
+        "recipe[sample]"
       ]
     }
+    
+This node has a little bit of everything in it. Though I would love to split that out into some base node information I couldn't get chef solo to do it without some whacky recipes. 
+
+First we setup the basic app information. We set the app environment to production. You might want to choose development or staging here. This generally controls which Rails environment is used (and therefore which entries in the config *.yml files are used).
+
+Next we setup ruby, nginx, monit and cron. You won't need these on every node. For example worker nodes likely won't have nginx running and web-only nodes might not need ruby (there is already a basic ruby installed for running chef).
+
+We have also added `sudo` authorization for the `vagrant` user which will exist by default on your Vagrant instance. This is really helpful but not absolutely required (the vagrant user has sudo privileges by default, but the other cookbooks will remove it without this setting).
 
 This covers most of the basics. Node specific information will be stored in a node JSON file (for example, environment, cron tasks, run lists). The one caveat is `build_essential`: the `compiletime` setting is required to make chef's dependency resolver do the right thing in the right order.
+
+Finally we specify the `run_list` which is just a list of all our roles and one recipe we haven't seen yet. By including all of the roles we are saying that this node (our local vagrant) will act like the web server, database server, and app server all at once. You could also create multiple vagrant boxes and test out mutli-server setups. 
+
+The sample recipe at the end of the list refers to the site-cookbook we will make next. You should name this after your application (here we used "sample").
+
+### Data bags
 
 We'll also need a data_bag to store information about users (for example the user that will deploy the application and which users can ssh into the server). In `data_bags/users/YOURAPPNAME.json` add the following:
 
@@ -266,6 +308,7 @@ Roles are simple groupings of cookbooks that run on specific kinds of servers (f
     run_list(
       'recipe[vim]',
       'recipe[chef-solo-search]',
+      'recipe[iptables]',
       'recipe[ntp]',
       'recipe[cron]',
       'recipe[sudo]',
@@ -309,54 +352,6 @@ For the app role add the following to `roles/app.rb`:
 
 These roles are somewhat arbitrary when starting out. You might split Redis into a separate role called "cache" for instance. You might create a worker role that includes `imagemagick` and remove it from the app role.
 
-### Nodes
-
-Nodes represent actual servers. When working with a small number of nodes (1-3) this is fairly simple to manage. As the complexity of the system increases and you have multiple app nodes, multiple worker nodes, and need to rely on coordination and service discovery this pattern will probably fall apart. At that point you might want something like Synapse. For now we will start simple.
-
-The first node you should create is a local node for your vagrant box. The name of the node must correspond to the address of the node and you can do this in a couple of ways:
-
-1. You could name the node 127.0.0.1.json knowing you will provision to your local.
-2. You could create an entry in your `/etc/hosts` file to give a resolvable domain and name your node correspondingly.
-3. You could create an actual DNS entry for your domain which points to 127.0.0.1 and name your node correspondingly.
-
-There are a couple of additional options here which involve DNS, resolvers, etc. But we'll go the easy route and choose option 2. To edit your `/etc/hosts` file you'll need to use `sudo`. This is generally considered bad form as you never want to use `sudo`:
-
-    sudo vim /etc/hosts
-    
-Add the following entry:
-
-    127.0.0.1 dev.YOURDOMAIN.com
-    
-You could, in theory bind to 0.0.0.0 which would bind to all interfaces. But this keeps things a little more specific to loopbacks.
-
-Now, to create the node (in your `chef` folder) add the file `nodes/dev.YOURDOMAIN.com.json`:
-
-    {
-      "sample": {
-        "environment": "production"
-      },
-      "authorization": {
-        "sudo": {
-          "users": ["vagrant"],
-          "passwordless": true
-        }
-      },
-      "run_list": [
-        "role[base]",
-        "role[web]",
-        "role[data]",
-        "role[app]",
-        "recipe[sample]"
-      ]
-    }
-
-First, we set the environment to production. You might want to choose development or staging here. This generally controls which Rails environment is used (and therefore which entries in the config *.yml files are used).
-
-We have also added `sudo` authorization for the `vagrant` user which will exist by default on your Vagrant instance. This is really helpful but not absolutely required (the vagrant user has sudo privileges by default, but the other cookbooks will remove it without this setting).
-
-Finally we specify the `run_list` which is just a list of all our roles and one recipe we haven't seen yet. By including all of the roles we are saying that this node (our local vagrant) will act like the web server, database server, and app server all at once. You could also create multiple vagrant boxes and test out mutli-server setups. 
-
-The sample recipe at the end of the list refers to the site-cookbook we will make next. You should name this after your application (here we used "sample").
 
 ### Site Cookbook
 
@@ -420,10 +415,10 @@ Next we setup some defaults for the Postgres configuration (using some of the en
 
 With the attributes setup, we can create the default recipe. I tend to add everything I need into the default recipe. You could split the recipe into separate files (for example, shell.rb, database.rb, application.rb, etc.) and then include those with `include_recipe` but the organization is already somewhat Byzantine so I keep it all together. Add the following to the file `site-cookbooks/sample/recipes/default.rb`:
 
-    ## Default attributes
-    #
-    default_data_bag = data_bag_item("default", "sample")
-    node.default_attrs = Chef::Mixin::DeepMerge.merge(node.default_attrs, default_data_bag.to_hash)
+    ## iptables
+    iptables_rule "iptables.allow_ssh"
+    iptables_rule "iptables.allow_http"
+
 
     ## Shell
     #
@@ -552,9 +547,9 @@ With the attributes setup, we can create the default recipe. I tend to add every
       EOH
     end
 
-There are seven main sections here:
+There are several main sections here:
 
-* __Default attributes__: this loads the information from the default data bag and merges the values into our current node.
+* __iptables__: this section sets up networking rules. We have already setup default rules that reject all traffic. If we want chef to continue to work we need to allow SSH. We also allow HTTP which would normally be only allowed on the web server. This is also where you would setup internal networking rules.
 * __Shell__: this just sets up a .inputrc file which provides some helpful defaults when you are SSH'd into the machine (which you shouldn't need to do). You could omit this.
 * __Database__: this section sets up the database users and connection information. You only need this on the database servers, so splitting this out to a separate recipe might be useful. You could also surround this with a test for the current role.
 * __Application__: this sets up the default folders for the application deployment. On some servers you won't need this (i.e., a web server acting only as a proxy or a database server on it's own).
@@ -562,7 +557,22 @@ There are seven main sections here:
 * __Cron__: Cron tasks are not included directly in the site-cookbook. Instead cron tasks should be added to specific nodes. This way you don't have multiple machines trying to do the same thing simultaneously.
 * __Monitoring__: this sets up a basic monit task for Redis. Much more could be added to this.
 
-To support this recipe you need to add a set of templates to the folder `site-cookbooks/sample/templates/default/`. First create `backup-config.rb.erb`:
+To support this recipe you need to add a set of templates to the folder `site-cookbooks/sample/templates/default/`. 
+
+First you'll need to create templates for the iptables rules. Create `iptables.allow_ssh.erb` (_note: if you use the default iptables cookbooks, you will need to specify the rules for_ `FWR` _instead of_ `INPUT`):
+
+    # Allow all SSH connections
+    -A INPUT -p tcp -m state --state NEW --dport 22 -j ACCEPT
+    # Allow 2222 also for vagrant
+    -A INPUT -p tcp -m state --state NEW --dport 2222 -j ACCEPT
+
+Then create `iptables.allow_http.erb` (_note: if you use the default iptables cookbooks, you will need to specify the rules for_ `FWR` _instead of_ `INPUT`):
+
+    # Allow HTTP and HTTPS
+    -A INPUT -p tcp --dport 80 -j ACCEPT
+    -A INPUT -p tcp --dport 443 -j ACCEPT
+
+Next create `backup-config.rb.erb`:
 
     ##
     # Load all models from the models directory.
@@ -677,7 +687,7 @@ Knife allows you to "prepare" the box (which will setup chef and ruby):
 
 Notice that we used the `vagrant` user to prepare. By default this user is built in to Vagrant. If you are prompted with a password (for sudo) it should be "vagrant". We also specified that the SSH session will happen on port 2222 which we bound in the `Vagrantfile`.
 
-In the above command we've turned on -VV (two capital letter 'V') for very verbose output, though this is not necessary. Some of the chef commands take a really long time and this helps to see how far along things are. When chef runs initially it is compiling packages and is slow, so be patient. To improve the performance see the notes on Packer and [CheckIntall](checkinstall.md). Once complete you'll see:
+In the above command we've turned on -VV (two capital letter 'V') for very verbose output, though this is not necessary. Some of the chef commands take a really long time and this helps to see how far along things are. When chef runs initially it is compiling packages and is slow, so be patient. To improve the performance see the notes on Packer and [CheckInstall](checkinstall.md). Once complete you'll see:
 
     DEBUG: Node config 'nodes/dev.sample.com.json' already exists
 
@@ -697,19 +707,6 @@ Now, you can recook the box as needed (note you have to use `dev.sample.com` to 
     knife solo cook sample@dev.sample.com -p 2222
 
 This process should be pretty fast.
-
-
-## TODO
-
-* Look into custom bootstrap script here https://github.com/opscode/chef/blob/master/lib/chef/knife/bootstrap/ubuntu12.04-gems.erb
-
-
-knife bootstrap --template-file bootstrap/ubuntu-12.04-lts.erb -u vagrant dev.exposely.com echo '{"run_list":[]}' > nodes/dev.exposely.com.json
-
-knife bootstrap --template-file bootstrap/ubuntu-12.04-lts.erb -p 2222 -u vagrant dev.exposely.com  --identity-file ~/.vagrant.d/insecure_private_key
-
-
-knife bootstrap --template-file bootstrap/ubuntu-12.04-lts.erb -p 2222 -u root dev.exposely.com  -i ~/.vagrant.d/insecure_private_key
 
 
 

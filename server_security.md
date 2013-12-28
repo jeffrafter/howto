@@ -33,4 +33,10 @@ See note on rsyslog
 
 ## ssh
 
+
+    # Disable password access
+    sed -E -i "s/.*PasswordAuthentication.*/PasswordAuthentication no/" /etc/ssh/sshd_config
+    sed -E -i "s/.*ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/" /etc/ssh/sshd_config
+    restart ssh
+
 ## Jump servers
