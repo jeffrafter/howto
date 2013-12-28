@@ -82,6 +82,7 @@ By default, I setup a server to use Ruby (via rbenv), Postgres, Redis, and Nginx
 
     # Basic server information
     cookbook 'apt'
+    cookbook 'openssh'
     cookbook 'iptables', git: 'https://github.com/jeffrafter/iptables'
     cookbook 'ntp'
     cookbook 'cron'
@@ -183,6 +184,13 @@ Now, to create the node (in your `chef` folder) add the file `nodes/dev.YOURDOMA
       "monit": {
         "notify_email": "ops@sample.com"
       },
+      "openssh": {
+        "server": {
+          "password_authentication": "no",
+          "permit_root_login": "no",
+          "challenge_response_authentication": "no"
+        }
+      },
       "cron": {
         "tasks": [
         ]
@@ -210,6 +218,8 @@ This node has a little bit of everything in it. Though I would love to split tha
 First we setup the basic app information. We set the app environment to production. You might want to choose development or staging here. This generally controls which Rails environment is used (and therefore which entries in the config *.yml files are used).
 
 Next we setup ruby, nginx, monit and cron. You won't need these on every node. For example worker nodes likely won't have nginx running and web-only nodes might not need ruby (there is already a basic ruby installed for running chef).
+
+The openssh configuration is used by the opens recipe and helps secure our communications.
 
 We have also added `sudo` authorization for the `vagrant` user which will exist by default on your Vagrant instance. This is really helpful but not absolutely required (the vagrant user has sudo privileges by default, but the other cookbooks will remove it without this setting).
 
@@ -308,6 +318,7 @@ Roles are simple groupings of cookbooks that run on specific kinds of servers (f
     run_list(
       'recipe[vim]',
       'recipe[chef-solo-search]',
+      'recipe[openssh]',
       'recipe[iptables]',
       'recipe[ntp]',
       'recipe[cron]',
