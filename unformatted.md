@@ -38,3 +38,23 @@ References:
 * https://devcenter.heroku.com/articles/ssl-endpoint#upload-certificates
 * https://gist.github.com/RandomEtc/1222498
 * http://lsayers.blogspot.com/2012/08/setting-up-ssl-on-heroku.html
+
+## Local Resolvers
+
+http://www.echoditto.com/blog/never-touch-your-local-etchosts-file-os-x-again
+
+ernie
+in the server block:
+server_name  ~^.*?(?<domain>[^\.]+).dev$;
+root         /Users/ernie/Projects/$domain/public;
+you may want to use something other than "ernie" in that path. But you know, maybe not. :D
+anyway, install dnsmasq and set up localhost to be your resolver for .dev
+
+Also, use Foreman
+
+## Checkout deploying using recap?
+
+http://blog.codeclimate.com/blog/2013/10/02/high-speed-rails-deploys-with-git/
+
+
+https://developers.google.com/speed/pagespeed/module

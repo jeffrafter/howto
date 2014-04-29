@@ -22,6 +22,8 @@ Within my projects folder I will _start the new Rails app_ and this will create 
     rails new sample
     cd sample
 
+> Note: if you are creating an app and plan to deploy to heroku you probably want to use postgres as your database. In that case you should just create the app with that set: `rails new sample -d postgres --skip-test-unit`
+
 In this case my application folder is /projects/sample. This is my "Rails Root" path for my application (on my development machine).
 
 You want to use the latest ruby there (this creates a .ruby-version file):
@@ -97,9 +99,54 @@ _Get a Guardfile_. Gaurd can watch your rails folder for changes and re-run the 
 
 Now, I don't know about you but I like to change my guard command like so:
 
-    guard :rspec, :cli => '--color --format Fuubar --profile', :all_on_start => false, :all_after_pass => false do
+    guard :rspec, cmd: 'bundle exec rspec --color --format Fuubar --profile', all_on_start: false, all_after_pass: false do
+
 
 Now run guard:
 
     bundle exec guard
+
+## Setting up settings
+
+You will likely have some settings that you don't want stored in your repository and generally, moving secret keys around is a bad idea. On Heroku you can use ENV vars instead, and in fact on your own deployment you can do the same. In `config/application.rb` add the following after the `Bundler` command:
+
+    # Load application ENV vars and merge with existing ENV vars. Loaded here so can use values in initializers.
+    unless Rails.env.production?
+      config = YAML.load_file('config/application.yml')[Rails.env] rescue {}
+      config.each do |k,v|
+        ENV[k.upcase] = v
+      end
+    end
+    
+Next you'll need an `config/application.yml`:
+
+    defaults: &defaults
+      secret_key_base: 'YOUR SECRET KEY BASE'
+      api_secret: 'SOME OTHER API SECRET'
+
+    development:
+      <<: *defaults
+
+    production:
+      <<: *defaults
+
+    test:
+      <<: *defaults
+
+You can generate secret keys by using `rake secret`. 
+
+Remove the secret key found in `config/initializers/secret_token.rb` and replace it with an ENV var:
+
+    Rplcat::Application.config.secret_key_base = ENV['SECRET_KEY_BASE']
+    
+> In fact, you should absolutely add a new key if you have already committed the old one in this file.    
+    
+Finally, if you are using Heroku or a similar platform you'll want to push those keys. Here is a crazy one-liner:
+
+      ruby -e 'require "yaml"; puts "heroku config:set #{(YAML.load_file("./config/application.yml")["production"]).map{|k, v| "#{k.upcase}=#{v}" }.join(" ")}"'
+
+
+# Oh that database?
+
+If you are using postgresql, make sure you have the gem `pg` in your Gemfile and bundle.
 
