@@ -65,3 +65,6 @@ You will also need to add an additional configuration item in your `.chef/knife.
     knife[:bootstrap_user] = "sample"
     
 This user and group will be added by default and your public key will be added to the SSH authorized keys. You can override the group by specifying the `bootstrap_group` and you can override the key by specifying the `bootstrap_key`. 
+
+
+    knife solo prepare vagrant@dev.sample.com -p 2222 -VV --identity-file ~/.vagrant.d/insecure_private_key --template-file bootstrap/ubuntu-12.04-lts.erb

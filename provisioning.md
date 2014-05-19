@@ -293,6 +293,8 @@ Once you write and quit the file will be encrypted and can be safely added to yo
 
     knife solo data bag edit passwords aws 
     
+> Note: if this command just hangs, it is possible you have overriden your EDITOR environment variable. Try prefixing the command with `EDITOR=vim`.
+
 You can use this same pattern for your database users:
 
     knife solo data bag create passwords postgresql
