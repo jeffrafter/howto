@@ -8,12 +8,16 @@ This is only the basics. Getting your repository, your organization and getting 
 _Get your ruby ready_. I use rbenv and ruby-build. There are a few other options available (rvm, etc.) but this is the one that has worked for me:
 
     brew upgrade ruby-build
-    rbenv install 2.0.0-p353
-    rbenv global 2.0.0-p353
-    gem install rails
+    rbenv install -l
 
-_Initialize the project_. I have a folder called projects which I can access via /projects. This is just
-a symlink to ~/Projects:
+    # Install the newest
+    rbenv install 2.1.2
+    rbenv global 2.1.2
+    gem install rails    
+    
+_Install your basic gems_. If you have just installed a new version of ruby you might need to `gem install bundler rake rails` 
+
+_Initialize the project_. I have a folder called projects which I can access via /projects. This is just a symlink to ~/Projects:
 
     cd /projects
 
@@ -22,7 +26,7 @@ Within my projects folder I will _start the new Rails app_ and this will create 
     rails new sample
     cd sample
 
-> Note: if you are creating an app and plan to deploy to heroku you probably want to use postgres as your database. In that case you should just create the app with that set: `rails new sample -d postgres --skip-test-unit`
+> Note: if you are creating an app and plan to deploy to heroku you probably want to use postgres as your database. In that case you should just create the app with that set: `rails new sample -d postgresql --skip-test-unit`
 
 In this case my application folder is /projects/sample. This is my "Rails Root" path for my application (on my development machine).
 
@@ -47,7 +51,7 @@ following two options:
 
 Setup the `Gemfile`. Grab the sample Gemfile gist as it has quite a few helpful defaults:
 
-    curl https://raw.github.com/jeffrafter/sample/941e97b8f6a4e86c119de3fd6745ae452c9efe1b/Gemfile -o Gemfile
+    wget https://raw.github.com/jeffrafter/sample/941e97b8f6a4e86c119de3fd6745ae452c9efe1b/Gemfile
 
 Once you are done, you need to bundle the gems for your version of ruby. This will automatically figure out all of the dependencies:
 
@@ -92,6 +96,14 @@ Modify the spec helper in spec/spec_helper.rb. You need to add the config option
 
     # Add factory girl
     config.include FactoryGirl::Syntax::Methods
+    
+You'll probably also want to be able to focus specs at times:
+
+    # Helpers
+    config.filter_run focus: true
+    config.alias_example_to :fit, focus: true
+    config.alias_example_to :pit, pending: true
+    config.run_all_when_everything_filtered = true    
 
 _Get a Guardfile_. Gaurd can watch your rails folder for changes and re-run the related tests:
 
@@ -150,3 +162,5 @@ Finally, if you are using Heroku or a similar platform you'll want to push those
 
 If you are using postgresql, make sure you have the gem `pg` in your Gemfile and bundle.
 
+
+# Welcome controller

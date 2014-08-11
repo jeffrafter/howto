@@ -68,3 +68,12 @@ This user and group will be added by default and your public key will be added t
 
 
     knife solo prepare vagrant@dev.sample.com -p 2222 -VV --identity-file ~/.vagrant.d/insecure_private_key --template-file bootstrap/ubuntu-12.04-lts.erb
+    
+    
+    
+    
+    #!/bin/bash
+vagrant up
+knife bootstrap --template-file bootstrap/ubuntu-14.04-lts.erb -u vagrant dev.siren.com -p 2222 --identity-file ~/.vagrant.d/insecure_private_key
+echo '{"run_list":[]}' > nodes/dev.siren.com.json
+knife solo cook vagrant@dev.siren.com -p 2222 --identity-file ~/.vagrant.d/insecure_private_key

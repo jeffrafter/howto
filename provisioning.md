@@ -24,6 +24,12 @@ You need to have some local gems installed:
 
 You could put these into your `Gemfile` but then you would need to bundle exec the commands. For simplicity I have just installed them.
 
+> If you are on OSX you run into an error with dep_gecode you need to install an older version using `brew`. 
+
+    $ cd $( brew --prefix )
+    $ git checkout 3c5ca25 Library/Formula/gecode.rb
+    $ brew install gecode
+
 From your Rails root folder you want to create a folder for your cookbooks:
 
     knife solo init chef

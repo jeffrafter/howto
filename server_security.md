@@ -39,4 +39,19 @@ See note on rsyslog
     sed -E -i "s/.*ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/" /etc/ssh/sshd_config
     restart ssh
 
-## Jump servers
+## Jump servers / Bastion servers
+
+## Certificate pinning / HSTS / etc
+
+* http://stackoverflow.com/questions/16613081/ssl-pinning-with-afnetworking
+* https://www.owasp.org/index.php/Pinning_Cheat_Sheet
+* https://www.owasp.org/index.php/Certificate_and_Public_Key_Pinning
+* http://initwithfunk.com/blog/2014/03/12/afnetworking-ssl-pinning-with-self-signed-certificates/
+
+Certificate pinning has downsides
+
+Public key pinning: 
+
+http://stackoverflow.com/questions/15728636/how-to-pin-the-public-key-of-a-certificate-on-ios
+
+https://github.com/AFNetworking/AFNetworking/issues/1852

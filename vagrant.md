@@ -17,8 +17,8 @@ You can download and install a default box or you can start with a good `Vagrant
 
       # Specifying the url means that if the box is not installed
       # Vagrant knows where to get it. Here I am using a 64-bit
-      # version of 12.04 LTS (long-term support)
-      config.vm.box_url = "http://cloud-images.ubuntu.com/vagrant/precise/current/precise-server-cloudimg-amd64-vagrant-disk1.box"
+      # version of 14.04 LTS (long-term support)
+      config.vm.box_url = "http://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box"
       
       # Some basic config for later
       config.vm.network "forwarded_port", guest: 80, host: 8080
