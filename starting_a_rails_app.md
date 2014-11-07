@@ -154,6 +154,8 @@ Once you are done, you need to bundle the gems for your version of ruby. This wi
 
     bundle
     
+> What if you are offline, working on an airplane desperately fighting bad wifi? You can install your gems from local sources using `bundle install --local`.
+    
 ## Documentation    
 
 Kill the README.rdoc:
@@ -256,7 +258,7 @@ Setup the `.gitignore`. This will keep all of the user specific files (and sensi
     
     # You may want to ignore .env if you are using DotEnv
     # If you do ignore, you should have a .env.example
-    # .env
+    .env
 
     # In modern Rails you do not ignore database.yml 
     # or secrets.yml by default. But if you store secrets in them
@@ -278,79 +280,126 @@ You want to test things so you'll need to _install rspec_. Now really, you don't
 
     rails g rspec:install
 
-Modify the spec helper in spec/spec_helper.rb. You need to add the config option in the config block:
+Modify the spec helper in spec/spec_helper.rb. By default the configuration is commented out using `=begin` to `=end`. The default configuration is good and you should remove the comment markers and use the settings provided. 
+
+The default settings allow you to focus specs using `focus: true`, but it is helpful to add aliases to the `it` method:
+
+    config.alias_example_to :fit, focus: true
+    config.alias_example_to :pit, pending: true
+
+In Rspec 3 there are Rails specific settings in `spec/rails_helper.rb`. To use Factory girl shortcuts you need to add the config option in the config block in the Rails spec helper:
 
     # Add factory girl
     config.include FactoryGirl::Syntax::Methods
+
+### Options
+
+When Rspec installs it adds a `.rspec` file that has the default options. By default warnings are on and this tends to create a lot of noise.
+
+    --format Fuubar
+    --color
+    --require spec_helper
+    --profile
+
+If you want to see the warnings (you don't) you can add:
+
+    --warnings
     
-You'll probably also want to be able to focus specs at times:
-
-    # Helpers
-    config.filter_run focus: true
-    config.alias_example_to :fit, focus: true
-    config.alias_example_to :pit, pending: true
-    config.run_all_when_everything_filtered = true    
-
+### Guard    
+    
 _Get a Guardfile_. Gaurd can watch your rails folder for changes and re-run the related tests:
 
     bundle exec guard init
 
 Now, I don't know about you but I like to change my guard command like so:
 
-    guard :rspec, cmd: 'bundle exec rspec --color --format Fuubar --profile', all_on_start: false, all_after_pass: false do
-
+    guard :rspec, cmd: 'bundle exec rspec' do
+    
 Now run guard:
 
     bundle exec guard
     
 You might have a ton of warnings. When you run the RSpec 3 installer it adds a `.rspec` file to your Rails root that has `--warnings` turned on. You can turn these warnings off by removing that line.
 
+## Foreman and running development
+
+Foreman helps you start up all of your processes in a predefined way. In order to use Foreman you'll need a `.env` file:
+
+    RACK_ENV=development
+    PORT=3000
+
+You can use this to easily change the default port for your local Rails server. You'll also want a `Procfile`:
+
+    web:	bundle exec thin start -p $PORT -e $RACK_ENV
+
+Now, instead of running `rails s` you can run:
+
+    foreman start
+    
+You may need to install the `foreman` gem (or you can run it with `bundle exec foreman start`). Instead of running `rails console` directly, you should also use foreman:
+
+    foreman run rails console
+    
+This will load your `.env` when setting up the console.
+
 ## Setting up settings
 
-You will likely have some settings that you don't want stored in your repository and generally, moving secret keys around is a bad idea. On Heroku you can use ENV vars instead, and in fact on your own deployment you can do the same. In `config/application.rb` add the following after the `Bundler` command:
+You will likely have some settings that you don't want stored in your repository and generally, moving secret keys around is a bad idea. On Heroku you can use ENV vars instead, and in fact on your own deployment you can do the same. Make sure that you have `.env` in your `.gitignore`. Then add the following to your `.env`:
 
-    # Load application ENV vars and merge with existing ENV vars. Loaded here so can use values in initializers.
-    unless Rails.env.production?
-      config = YAML.load_file('config/application.yml')[Rails.env] rescue {}
-      config.each do |k,v|
-        ENV[k.upcase] = v
-      end
-    end
+
+    RACK_ENV=development
+    PORT=3000
+    SOME_API_SECRET=Your acccss key
+
+Putting your secret keys and config keys into the `.env` will insure that they are not added to your repository and stored remotely. 
     
-Next you'll need an `config/application.yml`:
+Because these environment variables are loaded you can use them throughout your program. However, you may want to use them directly in your `config/secrets.yml`.
 
     defaults: &defaults
-      api_secret: 'SOME OTHER API SECRET'
+      api_secret: <%= ENV["SOME_API_SECRET"] %>
 
     development:
       <<: *defaults
-
-    production:
-      <<: *defaults
+      secret_key_base: cbed3176b89ca67d77601a133480b6e2770e66c76e04c0b5b71fd7c4a84635485c314421034b134602e064496da738c9cbb56d64926ebadd6a883047da65a3d5
 
     test:
       <<: *defaults
+      secret_key_base: 5c0a1d6fa5a9d104bc712d580f4f2ee26b46f1084ed77e2e055d85ba0e4021b6baff5087b67ee423ec46fbc789a83f266459321dd440da2e6836032335bb2c07
+
+    production:
+      <<: *defaults
+      secret_key_base: <%= ENV["SECRET_KEY_BASE"] %>
+
+With your secrets created you can use these anywhere in your Rails application:
+
+    Rails.application.secrets.api_secret
+
+You can use the environment variable as a default value or embed it in each environment directly. It is also possible to have multiple `.env` files per environment. For example you could keep your development secrets in a `.env.development` file (remember to add this to your `.gitignore` if necessary). If you wanted to load this when running foreman you could do the following:
+
+    foreman start -e .env,.env.development    
+    
 
 If you are using Heroku or a similar platform you'll want to push those keys. Here is a crazy one-liner:
 
-      ruby -e 'require "yaml"; puts "heroku config:set #{(YAML.load_file("./config/application.yml")["production"]).map{|k, v| "#{k.upcase}=#{v}" }.join(" ")}"'
-      
-Overall this is not a very secure way to deal with your settings. If they live on your local machine unencrypted they are not safe and can be stolen. Also, this encourages passing the `config/application.yml` file around. Using Rails `config/secrets.yml` (which is checked into the repository) for development and testing is a better approach. 
+    heroku config:set `cat .env`      
+    
+Overall this is not a very secure way to deal with your settings. If they live on your local machine unencrypted they are not safe and can be stolen. Also, this encourages passing the `.env` file around (never mail or skype this to another developer on your team). 
 
-You still need to answer the question of where you store production secrets.
+If you have a lot of setup in your `.env` that is required, it is helpful to make a `.env.example` that does not contain secrets so that other developers have a place to start. If the example file doesn't have secrets, it can be safely checked into your repository.
 
 ### Secret token      
 
-In modern Rails applications you can also store secrets in `config/secrets.yml`. This works really well and gives you a nice API for accessing these items. Typically this is where the `secret_key_base` is stored. 
+Storing secrets in `config/secrets.yml` works really well and gives you a nice API for accessing these items. Typically this is where the `secret_key_base` is stored and in the development and test environments you can store these directly in the file. 
+
+Your production `secret_key_base` should be kept very secret. With that secret, any attacked could decrypt remote session cookies and impersonate other users easily. 
+
+> In fact, you should absolutely add a new key if you have already committed one (though this could impact currently logged in sessions).    
+
+On Heroku, the `SECRET_KEY_BASE` environment variable is defined for you so that you don't need to manage the production secret locally.
 
 If you want to manage this yourself (you should not), you can generate secret keys by using `rake secret`. 
 
-Remove the secret key found in `config/initializers/secret_token.rb` and replace it with an ENV var:
-
-    Rplcat::Application.config.secret_key_base = ENV['SECRET_KEY_BASE']
-    
-> In fact, you should absolutely add a new key if you have already committed the old one in this file.    
-    
+Never store the secret key directly in `config/initializers/secret_token.rb` 
 
 ## Oh that database?
 
@@ -375,19 +424,3 @@ You may need to update your test database:
     bundle exec rake RAILS_ENV=test rake db:migrate
 
 
-## Foreman and running development
-
-Foreman helps you start up all of your processes in a predefined way. In order to use Foreman you'll need a `.env` file:
-
-    RACK_ENV=development
-    PORT=3000
-
-You can use this to easily change the default port for your local Rails server. You'll also want a `Procfile`:
-
-    web:	bundle exec thin start -p $PORT -e $RACK_ENV
-
-Now, instead of running `rails s` you can run:
-
-    foreman start
-    
-You may need to install the `foreman` gem (or you can run it with bundle exec foreman start`)    
