@@ -41,12 +41,15 @@ For your own API clients (your mobile application for example) you'll want to su
   - [http://tools.ietf.org/html/rfc6749#section-1.3.3](http://tools.ietf.org/html/rfc6749#section-1.3.3)
 
     # Support credential based logins
+    
+    ```ruby
     resource_owner_from_credentials do |routes|
       email = "#{params[:username]}".downcase
       return if email.blank?
       user = User.where('email = ?', email).first
       user if user && user.authenticate(params[:password])
     end
+    ```
     
 If you are supporting a traditional web-based OAuth2 flow, access grants are based on the currently logged in user. This comes from your traditional session which may be provided by Warden, Devise or your own authentication (for example Authkit):
 
