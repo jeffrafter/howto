@@ -85,7 +85,7 @@ Setup the `Gemfile`. This sample Gemfile has quite a few helpful defaults, but y
     source 'https://rubygems.org'
 
     # Standard rails, without coffee-script
-    gem 'rails', '4.1.6'
+    gem 'rails', '4.1.8'
     gem 'sass-rails'
     gem 'uglifier'
     gem 'jquery-rails'
@@ -174,7 +174,7 @@ long live the README.md:
         git clone git@github.com:YOURUSERNAME/sample.git
 
     Once you have that you'll want to switch to that folder. This project was built using
-    Rails 4.0.x and Ruby 2.0.0-p247 Ruby versions are managed with rbenv and when switching to
+    Rails 4.1.x and Ruby 2.1.2 Ruby versions are managed with rbenv and when switching to
     the folder you should receive a notice that you need to install ruby if it is missing.
 
     Once you have the code you should be able to bundle.
