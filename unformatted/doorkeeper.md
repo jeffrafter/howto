@@ -57,7 +57,22 @@ If you are supporting a traditional web-based OAuth2 flow, access grants are bas
       redirect_to(login_path) unless @current_user
     end
 
+Or if you are using user sessions:
+
+    # This block will be called to check whether the resource owner is authenticated or not.
+    resource_owner_authenticator do
+      return @current_user_session.user if defined?(@current_user_session)
+      @current_user_session ||= UserSession.active.where(id: session[:user_session_id]).first if session[:user_session_id]
+      redirect_to(login_path) unless @current_user_session
+      @current_user_session && @current_user_session.usr
+    end
+
 This is required because Doorkeeper does not have access to your `current_user` method.
+
+You need to enabled the `password` grant flow for your mobile application to work:
+
+    grant_flows %w(password)
+
 
 ## Base Controller
 
@@ -188,8 +203,6 @@ This assumes you have a Signup form (or model) which simplifies the controller. 
 Warning: The request header can be easily spoofed (in many cases it can be easily intercepted or extracted from your mobile binary via decompilation). Because of this, there is no way to guarantee that the client making the signup request is your application. A spoofed request will still return a valid access token. This may mean users can access your API via alternate clients. While this may be beneficial in many cases, your API must be created with this expectation.
 
 If you need more control over which clients can access your API you may need to require that all signup be completed on your website.
-
-You'll need a route for your signup action:
 
 You'll need to add a route for your action:
 

@@ -11,13 +11,21 @@
 * Get dotfiles
 * Install [Mouapp](http://mouapp.com)
 * Install MacVim (via brew)
-* Install [Gitx](http://rowanj.github.io/gitx/)
+* Install [Gitx](https://github.com/rowanj/gitx/releases)
 * Install caffeine (via app store)
+* Install [ImageOptim](https://imageoptim.com)
 * Make color invert accessibility shortcuts work
 * Remap capslock
+* Install crashplan
+* Turn off auto-correct (System Preferences | Keyboard | Text)
+* Turn up key repeat
+* Screen auto-off in 5 minutes
 
 ## 1Password?
 
+When running 1Password for the first time you'll need to get it setup with another device. You can do this via iCloud but you must have iCloud Drive setup or you will receive an iCloud Error. 
+
+Instead you can simply run a backup on your other device and transfer the backup to your new computer and start from there.
 
 ## Mail
 
@@ -39,7 +47,7 @@ Find the latest release for your operating system: [https://xquartz.macosforge.o
 
 Homebrew is "The missing package manager for OSX". It allows you to quickly compile and install binaries.
 
-    ruby -e "$(curl -fsSL https://raw.github.com/Homebrew/homebrew/go/install)"
+    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
 Once you have installed brew, 
 
@@ -65,6 +73,7 @@ Solarized is an awesome color scheme you will like. There is a [terminal version
     
 Once the `Finder` window opens you should double click on the Terminal items in the `xterm-256color` color folder. Once you have opened these the themes are added to Terminal.app. Open the Preferences and choose the one you want and set it as default.
 
+Once you have completed the install of the themes you can delete the created folder.
 
 ## Setup an ssh key
 
@@ -97,13 +106,14 @@ Test the key:
 Afterwards you'll still need to add `eval "$(rbenv init -)"` to your profile as stated in the caveats. You'll only ever have to do this once.
 
     rbenv install -l
-    rbenv install 1.9.3-p545
+    rbenv install 2.1.5
     rbenv rehash
     
-When you install gems with binstubs you will need to rehash:    
-    
-    gem install bundler
-    rbenv rehash
+When you install gems with binstubs you will need to rehash.
+
+You can change your global ruby as well:
+
+    rbenv global 2.1.5
 
 ## Dotfiles
 
@@ -113,7 +123,10 @@ Setting up the your `~/.*` directory quickly makes your life better.
     
 Once you have done that you'll want to run the bootstrap:
 
+    cd ~/.dotfiles
     script/bootstrap
+    
+This is going to ask for sudo permission because some of the OSX config settings require sudo (which is generally a no-no). You can adjust the script if needed.   
     
 Update the vim submodules:
 
@@ -121,7 +134,13 @@ Update the vim submodules:
     git submodule init
     git submodule update
     
-You might have trouble with the C extension of Command-T because of the ruby version used to compile it:
+You can use CtrlP to instead of command-t. It installs a bit manually:
+
+    cd ~/.vim
+    git clone https://github.com/kien/ctrlp.vim.git bundle/ctrlp.vim    
+    
+    
+If you are using Command-T you might have trouble with the C extension of Command-T because of the ruby version used to compile it:
 
     cd ~/.vim/bundle/command-t/ruby/command-t
     ruby extconf.rb
@@ -134,14 +153,23 @@ You should install MacVim via Homebrew:
     brew install macvim
 
 Replace the icons:
+
+     sudo cp ~/.dotfiles/resources/MacVim.icns /Applications/MacVim.app/Contents/Resources/
     
-Symlink:    
+     sudo cp ~/.dotfiles/resources/caffeine/*.png /Applications/Caffeine.app/Contents/Resources/
+
+Something about a cooler icon [https://github.com/thilko/vim_config/blob/master/integrate_way_cooler_icon](https://github.com/thilko/vim_config/blob/master/integrate_way_cooler_icon):
     
     
-    https://github.com/thilko/vim_config/blob/master/integrate_way_cooler_icon
+    MACVIM_TARGET=$(find /usr/local/Cellar -name MacVim.app 2> /dev/null | sort | tail -n 1)
+    MACVIM_PATH="$MACVIM_TARGET/Contents/Resources/"
+    cp ~/.dotfiles/resources/MacVim.icns $MACVIM_PATH
     
+## Make a shortcut for iOS similator
+
+You know you want it:
     
-ln -s /Avpplications/Xcode.app/Contents/Applications/iPhone\ Simulator.app /Applications/iOS\ Simulator.app
+    ln -s /Avpplications/Xcode.app/Contents/Applications/iPhone\ Simulator.app /Applications/iOS\ Simulator.app
 
 ## Other things to brew
 
@@ -173,7 +201,7 @@ You'll want to setup your Nginx config in `/usr/local/etc/nginx/nginx.conf`:
 
     worker_processes  1;
 
-    error_log  /usr/local/var/log/nginx.error.log
+    error_log  /usr/local/var/log/nginx.error.log;
 
     events {
         worker_connections  1024;
@@ -184,7 +212,7 @@ You'll want to setup your Nginx config in `/usr/local/etc/nginx/nginx.conf`:
         default_type  application/octet-stream;
         sendfile        on;
         keepalive_timeout  65;
-        access_log  /usr/local/var/log/nginx.access.log
+        access_log  /usr/local/var/log/nginx.access.log;
 
         upstream rails {
           server 127.0.0.1:3000;
@@ -229,7 +257,7 @@ If you are serving a Ruby on Rails website:
 
           index        index.html index.htm;
 
-          try_files  $uri/index.html $uri.html $uri @dev;
+          try_files  $uri/index.html $uri.html $uri @rails;
 
           location @rails {
             proxy_set_header  X-Real-IP        $remote_addr;
@@ -271,3 +299,25 @@ If you are serving a Node.js website it is very similar to Rails:
     createdb `whoami`
     psql
     \q
+    
+## Install redis
+
+    brew install redis
+    ln -sfv /usr/local/opt/redis/*.plist ~/Library/LaunchAgents
+    launchctl load ~/Library/LaunchAgents/homebrew.mxcl.redis.plist
+        
+## Make Safari show the full web address
+
+You want to see the whole URL while you develop. But that is "advanced". Go to `Safari Preferences`, `Advanced`, and check `Show full website address`. [More info](http://osxdaily.com/2014/10/20/show-full-website-url-address-safari-mac-os-x/)
+
+# Fix osx to make it secure
+
+[https://fix-macosx.com](https://fix-macosx.com)
+
+# Shortcuts
+
+Open `System Preferences` go to `Keyboard` and click on `Shortcuts`. Once there, click on `App Shortcuts` and then you can click the plus icon to add a shortcut. 
+
+![New Tab](./images/setting-up-a-dev-machine/macvim-find.png)
+
+![Find...](./images/setting-up-a-dev-machine/macvim-new-tab.png)

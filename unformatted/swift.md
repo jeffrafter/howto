@@ -1,3 +1,14 @@
+http://www.objc.io/books/
+http://nshipster.com
+http://robots.thoughtbot.com/efficient-json-in-swift-with-functional-concepts-and-generics
+
+
+
+
+
+
+
+
 Swift:
 
 http://matthewpalmer.net/blog/2014/06/21/example-ios-keychain-swift-save-query/

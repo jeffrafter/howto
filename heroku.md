@@ -11,3 +11,7 @@ heroku run rails console
 heroku config:set `cat .env`
 
 ```
+
+Upgrading the database
+----------------------
+https://devcenter.heroku.com/articles/upgrading-heroku-postgres-databases#upgrade-with-pgbackups-transfer-default

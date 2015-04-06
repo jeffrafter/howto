@@ -11,8 +11,8 @@ _Get your ruby ready_. I use rbenv and ruby-build. There are a few other options
     rbenv install -l
 
     # Install the newest
-    rbenv install 2.1.3
-    rbenv global 2.1.3
+    rbenv install 2.2.1
+    rbenv global 2.2.1
     gem install rake rails bundler foreman mailcatcher   
     
 _Install your basic gems_. If you have just installed a new version of ruby you might need to `gem install bundler rake rails` 
@@ -32,7 +32,7 @@ In this case my application folder is /projects/sample. This is my "Rails Root" 
 
 You want to use the latest ruby there (this creates a .ruby-version file):
 
-    rbenv local 2.1.2
+    rbenv local 2.2.1
 
 _Remove the test folder_. you want to use specs instead.
 
@@ -49,9 +49,20 @@ following two options:
     # Set the default encoding
     config.encoding = "utf-8"
 
+You'll also want to set the host for the default urls:
+
+    config.action_mailer.default_url_options = {
+      host: Rails.application.secrets.domain,
+      protocol: Rails.application.secrets.protocol
+    }
+
+This will set the `default_url_options` for the production and test environments as well. You might want:
+
+    config.action_mailer.asset_host = "#{Rails.application.secrets.protocol}://#{Rails.application.secrets.domain}"
+
 For Heroku, you'll need to configure the asset pipeline to compile. In `config/environments/production.rb`:
     
-    # Do not fallback to assets pipeline if a precompiled asset is missed.
+    # Do fallback to assets pipeline if a precompiled asset is missed.
     config.assets.compile = true
 
 If you are sending email then you can use [Mailcatcher](http://mailcatcher.me) locally. This allows you to catch all email being sent from Rails and view it.
@@ -62,13 +73,11 @@ You'll need to configure mailcatcher in `config/environments/development.rb`:
       
     # Mailcatcher
     config.action_mailer.delivery_method = :smtp
-    config.action_mailer.smtp_settings = { :address => "localhost", :port => 1025, :domain => "localhost:3000" }
+    config.action_mailer.smtp_settings = { :address => "localhost", :port => 1025, :domain => Rails.application.secrets.domain }
+    config.action_mailer.raise_delivery_errors = true
+    config.action_mailer.perform_deliveries = true
 
-You'll also want to set the host for the default urls:
 
-    config.action_mailer.default_url_options = { host: "http://localhost:3000" }
-
-You should set the `default_url_options` for the production and test environments as well.
 
 If you use Safari when you develop you may run into refresh bugs because of Safari's poor handling of 304 Not Modified. If so, add this to your `config/environments/development.rb`:
 
@@ -79,15 +88,15 @@ If you use Safari when you develop you may run into refresh bugs because of Safa
 
 Setup the `Gemfile`. This sample Gemfile has quite a few helpful defaults, but you should compare it with the generated Gemfile and pick and choose:
 
-    # You should specify the ruby version for Heroku
-    ruby "2.1.2"
+    # You should specify the ruby version
+    ruby "2.2.1"
 
     source 'https://rubygems.org'
 
     # Standard rails, without coffee-script
-    gem 'rails', '4.1.8'
-    gem 'sass-rails'
-    gem 'uglifier'
+    gem 'rails', '4.2.1'
+    gem 'sass-rails', '~> 5.0'
+    gem 'uglifier', '>= 1.3.0'
     gem 'jquery-rails'
 
     # Processes
@@ -108,17 +117,6 @@ Setup the `Gemfile`. This sample Gemfile has quite a few helpful defaults, but y
     gem 'notifykit', git: 'https://github.com/jeffrafter/notifykit'
     gem 'uikit', git: 'https://github.com/jeffrafter/uikit'
 
-    # For authkit
-    gem "active_model_otp"
-    gem "bcrypt", "~> 3.1.2"
-
-    gem "omniauth"
-    gem "omniauth-facebook"
-    gem "omniauth-twitter"
-
-    # Be an oauth provider
-    gem "doorkeeper", git: "https://github.com/doorkeeper-gem/doorkeeper"
-
     # These are a couple of my favs, if I forget them I regret it
     gem 'strapless'
     gem 'awesome_print'
@@ -132,22 +130,19 @@ Setup the `Gemfile`. This sample Gemfile has quite a few helpful defaults, but y
 
     group :test do
       # Make our specs watchable with beautiful progress bar
-      gem 'guard-rspec'
+      gem 'guard-rspec', require: false
       gem 'fuubar'
     end
 
     group :test, :development do
       # Get specs involved in this process
-      gem 'rspec-rails', '~> 3.0.0'
-      gem "shoulda-matchers"
-      gem "factory_girl_rails"
+      gem 'rspec-rails', '~> 3.1'
+      gem 'shoulda-matchers'
+      gem 'factory_girl_rails'
+      gem 'byebug'
+      gem 'web-console', '~> 2.0'
     end
 
-    # For notifykit
-    gem "mustache"
-    gem "github-markup", require: "github/markup"
-    gem "github-markdown"
-    gem "redcarpet"
 
 
 Once you are done, you need to bundle the gems for your version of ruby. This will automatically figure out all of the dependencies:
@@ -166,36 +161,62 @@ long live the README.md:
 
     # Sample
     
+    A description of your application.
 
-    # Getting the code
+    ## Getting the code
 
     First things first, you need the repository:
 
         git clone git@github.com:YOURUSERNAME/sample.git
 
     Once you have that you'll want to switch to that folder. This project was built using
-    Rails 4.1.x and Ruby 2.1.2 Ruby versions are managed with rbenv and when switching to
+    Rails 4.2.x and Ruby 2.1.x Ruby versions are managed with rbenv and when switching to
     the folder you should receive a notice that you need to install ruby if it is missing.
 
     Once you have the code you should be able to bundle.
     
-    # Database
+    ## Environment
+
+    Make a `.env` file:
+
+        RACK_ENV=development
+        PORT=3000
+        DOMAIN=sample.dev
+
+    ## Mail
+
+    You need to send mails locally, to do this use `mailcatcher`:
+
+        gem install mailcatcher
+
+    Then run it:
+
+       mailcatcher
+
+    Once you have sent mails you can view them at [http://localhost:1080](http://localhost:1080)
+
+    ## Database
     
     The database requires you to use postgres in development. Assuming you have this you should be able to migrate
     
-        bundle exec rake db:create db:migrate db:seed
+        bundle exec rake db:create db:migrate
         
     For tests:
     
-        bundle exec rake RAILS_ENV=test db:create db:migrate db:seed
+        bundle exec rake RAILS_ENV=test db:create db:migrate
+        
+    For seeding:
     
-    # Running locally
+        foreman run bundle exec rake db:seed
+    
+      
+    ## Running locally
     
     To start the app locally you'll want to use foreman:
     
         foreman start
         
-    # Specs
+    ## Specs
     
     Testing is done using RSpec. You can run this continuously using Guard:
     
@@ -227,6 +248,7 @@ Setup the `.gitignore`. This will keep all of the user specific files (and sensi
 
     # Ignore logs and temp files
     /log/*
+    !/log/.keep
     /tmp/*
 
     # Ignore databases
@@ -280,17 +302,36 @@ You want to test things so you'll need to _install rspec_. Now really, you don't
 
     rails g rspec:install
 
-Modify the spec helper in spec/spec_helper.rb. By default the configuration is commented out using `=begin` to `=end`. The default configuration is good and you should remove the comment markers and use the settings provided. 
+Modify the spec helper in `spec/spec_helper.rb`. By default the configuration is commented out using `=begin` to `=end`. The default configuration is good and you should remove the comment markers and use the settings provided. 
 
-The default settings allow you to focus specs using `focus: true`, but it is helpful to add aliases to the `it` method:
+The default settings allow you to focus specs using `focus: true`, but it is helpful to add aliases to the `it` method. You can add these into a helper like `spec/support/aliases.rb`:
 
-    config.alias_example_to :fit, focus: true
-    config.alias_example_to :pit, pending: true
+
+    RSpec.configure do |config|
+      config.alias_example_to :fit, focus: true
+      config.alias_example_to :pit, pending: true
+    end
 
 In Rspec 3 there are Rails specific settings in `spec/rails_helper.rb`. To use Factory girl shortcuts you need to add the config option in the config block in the Rails spec helper:
 
     # Add factory girl
-    config.include FactoryGirl::Syntax::Methods
+    RSpec.configure do |config|
+      config.include FactoryGirl::Syntax::Methods
+    end
+
+Again, you can add this into a helper called `spec/support/factory_girl.rb`. 
+
+In order to load all of the files in `support` you'll need to require them from the `spec/rails_helper.rb`. Make sure the following line is not commented out:
+
+     Dir[Rails.root.join("spec/support/**/*.rb")].each { |f| require f }
+
+### Globally calling `describe`
+
+You may also want to add the ability to use the `describe` DSL globally (no longer the default). You can add the following to the end of the config block in the `spec_helper.rb`:
+
+    # Allow specs to begin with `describe` instead of `RSpec.describe`
+    config.expose_dsl_globally = true
+
 
 ### Options
 
@@ -376,7 +417,7 @@ With your secrets created you can use these anywhere in your Rails application:
 
 You can use the environment variable as a default value or embed it in each environment directly. It is also possible to have multiple `.env` files per environment. For example you could keep your development secrets in a `.env.development` file (remember to add this to your `.gitignore` if necessary). If you wanted to load this when running foreman you could do the following:
 
-    foreman start -e .env,.env.development    
+    foreman start -e .env,.    env.development    
     
 
 If you are using Heroku or a similar platform you'll want to push those keys. Here is a crazy one-liner:
