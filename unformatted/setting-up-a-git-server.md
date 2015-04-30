@@ -96,15 +96,163 @@ Finally we want to be able to use SSH as this user:
     groupadd ssh-user
     usermod -a -G ssh-user deploy
 
+### Local mail and smtp via Postfix
+
+These instructions are taken directly from [https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-postfix-as-a-send-only-smtp-server-on-ubuntu-14-04](https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-postfix-as-a-send-only-smtp-server-on-ubuntu-14-04). You'll want to note your Droplet's hostname:
+
+    hostname -f
+
+On Ubuntu the easiest way to get mail up an running is to install `mailutils`:
+
+    apt-get install mailutils
+
+When prompted for the *Postfix Configuration* choose `Internet Site` and choose `OK`. Next you will be asked for the *System Mail Name* which should be the same as your droplet's hostname.
+
+Next you'll need to edit `/etc/postfix/main.cf`. Change
+
+    inet_interfaces = all
+    
+To:
+
+    inet_interfaces = localhost
+    
+Then restart postfix:
+
+    service postfix restart
+    
+Test that sending mail works:
+
+    echo "This is the body" | mail -s "The subject" user@example.com
+    
+To forward system mail you'll need to add an alias to `/etc/aliases`. You can add aliases for existing users and non-existing users:
+
+    # See man 5 aliases for format
+    postmaster:    root
+    root:          forward@example.com
+    ops:           forward@example.com
+    
+Save the file and enable the aliases:
+
+    newaliases
+
+Test that sending mail works:
+
+    echo "This is the body" | mail -s "The subject" root
+
+
+> You can whitelist emails from the domain in your email client (so they are not sent to spam) or you can correctly identify the server using a PTR record, SPF record and by using OpenDKIM
+
+* [https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-postfix-as-a-send-only-smtp-server-on-ubuntu-14-04](https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-postfix-as-a-send-only-smtp-server-on-ubuntu-14-04)
+* [https://www.digitalocean.com/community/tutorials/how-to-use-an-spf-record-to-prevent-spoofing-improve-e-mail-reliability](https://www.digitalocean.com/community/tutorials/how-to-use-an-spf-record-to-prevent-spoofing-improve-e-mail-reliability)
+* [https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-dkim-with-postfix-on-debian-wheezy](https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-dkim-with-postfix-on-debian-wheezy)
+
+
+Make sure the PTR record (the name of your droplet) matches your fully qualified domain name (FQDN). For example, if you domain is example.com, then your mailing host above should be example.com and your droplet should be called example.com. 
+
+Then add an SPF record to your DNS:
+
+    TXT @ "v=spf1 a include:_spf.google.com ~all"
+
+This says that email sent from your a record and from google.com should be allowed.
+
+For OpenDKIM, start by installing the package:
+
+    apt-get install opendkim opendkim-tools 
+    
+Add the following options to `/etc/opendkim.conf`:
+
+    AutoRestart             Yes
+    AutoRestartRate         10/1h
+    SyslogSuccess           Yes
+    LogWhy                  Yes
+
+    Canonicalization        relaxed/simple
+
+    ExternalIgnoreList      refile:/etc/opendkim/TrustedHosts
+    InternalHosts           refile:/etc/opendkim/TrustedHosts
+    KeyTable                refile:/etc/opendkim/KeyTable
+    SigningTable            refile:/etc/opendkim/SigningTable
+
+    Mode                    sv
+    PidFile                 /var/run/opendkim/opendkim.pid
+    SignatureAlgorithm      rsa-sha256
+
+    UserID                  opendkim:opendkim
+
+    Socket                  inet:12301@localhost
+
+Add the milter by adding the following to `/etc/default/opendkim`:
+
+    SOCKET="inet:12301@localhost"
+
+Add to `/etc/postfix/main.cf`:    
+    
+    milter_protocol = 6
+    milter_default_action = accept
+    smtpd_milters = inet:localhost:12301
+    non_smtpd_milters = inet:localhost:12301
+
+    
+Specify Trusted hosts in `/etc/opendkim/TrustedHosts`:
+
+    127.0.0.1
+    localhost
+    192.168.0.1/24
+
+    *.example.com
+    
+In `/etc/opendkim/KeyTable`:
+
+    mail._domainkey.example.com example.com:mail:/etc/opendkim/keys/example.com/mail.private
+    
+In `/etc/opendkim/SigningTable`:
+
+    *@example.com mail._domainkey.example.com    
+
+Make a key dir and key:
+
+    mkdir -p /etc/opendkim/keys/example.com
+    cd /etc/opendkim/keys/example.com
+    opendkim-genkey -s mail -d example.com
+    chown opendkim:opendkim mail.private
+    cat mail.txt
+    
+Copy the `p` value and create a TXT DNS entry. Domain:
+    
+    mail._domainkey.example.com.
+
+    "v=DKIM1; k=rsa; p=YOUR_P_VALUE_HERE"
+
+Restart:
+
+    service postfix restart
+    service opendkim restart
+
+You can test the setup by sending mails at [http://www.mail-tester.com](http://www.mail-tester.com).
+
+If you are sending via a third party domain you can explore ATPSDomains. Or you can set them up manually. For example Mandrill allows customization: https://mandrill.zendesk.com/hc/en-us/articles/205582387-How-do-I-set-up-sending-domains-
+
 ### Watching the logs
 
 Next get logwatch:
 
-   apt-get install logwatch
+    apt-get install logwatch
 
-Edit the cron configuration `/etc/cron.daily/00logwatch`:
+Make a cache dir:
 
-   /usr/sbin/logwatch --mailto jeffrafter@gmail.com
+    mkdir /var/cache/logwatch
+ 
+Make a default conf:
+
+    cp /usr/share/logwatch/default.conf/logwatch.conf /etc/logwatch/conf/
+
+If you want to send email directly to an alternate user you can edit the cron configuration `/etc/cron.daily/00logwatch`:
+
+    /usr/sbin/logwatch --mailto jeffrafter@gmail.com
+ 
+You can test this by executing the cron manually:
+
+    /etc/cron.daily/00logwatch
 
 ### Autoban malicious users
 
@@ -159,7 +307,6 @@ In addition to fail2ban you'll want to check for rootkits:
 
     apt-get install lynis
     apt-get install rkhunter
-      - postfix no configuration
 
 ### Securing SSH
 
@@ -280,10 +427,9 @@ Fix your moduli. If `/etc/ssh/moduli` exists:
 
     awk '$5 > 2000' /etc/ssh/moduli > "${HOME}/moduli"
     wc -l "${HOME}/moduli" # make sure there is something left
-    mv "${HOME}/moduli" /etc/ssh/moduli
-    If it does not exist, create it:
+    mv "${HOME}/moduli" /etc/ssh/moduli 
 
-Otherwise (takes about 10 minutes on a Digital Ocean 5$/mo box):
+Otherwise create it (takes about 10 minutes on a Digital Ocean 5$/mo box):
 
     ssh-keygen -G "${HOME}/moduli" -b 4096
     ssh-keygen -T /etc/ssh/moduli -f "${HOME}/moduli"
@@ -300,6 +446,7 @@ Regenerate your keys (optional?):
     cd /etc/ssh
     rm ssh_host_*key*
     ssh-keygen -t ed25519 -f ssh_host_ed25519_key < /dev/null
+    # Don't paste this whole block run the next command separately
     ssh-keygen -t rsa -b 4096 -f ssh_host_rsa_key < /dev/null
 
 This will cause a known host error when SSHing in the next time if you have added the previous keys to your known hosts.
@@ -309,6 +456,28 @@ To restart SSH, keep your current session open and run
     service ssh restart
 
 Then from another console try to SSH in again. If successful you have not lost your login.
+
+### Firewall
+
+You want to restrict most external access to this machine. For now we want to allow only three services: SSH, and HTTP/HTTPs. To do this we could edit the `iptables` directly. It is much easier, however, to use the Uncomplicated Firewall (`ufw`) utility.
+
+    ufw default deny incoming
+
+Because we specified our SSH port as 22, to allow it, run:
+
+    ufw allow 22
+
+Note, this allows any machine on the internet to connect to this port and attempt to authenticate via SSH. To lock this down to just your machine:
+
+    ufw allow from YOURIP to any port 22
+    
+Note, this means that you won't be able to SSH from a coffee-shop, the office, etc. You could specify multiple addresses by running the command with each of the different IP addresses.     
+    
+    ufw allow 443
+    ufw allow 80
+    ufw enable
+
+* [http://blog.viktorpetersson.com/post/101707677489/the-dangers-of-ufw-docker](http://blog.viktorpetersson.com/post/101707677489/the-dangers-of-ufw-docker)
 
 #### Footnotes
 
@@ -322,7 +491,5 @@ Then from another console try to SSH in again. If successful you have not lost y
 ## Time
 
 TODO: ntp
-
-
 TODO: adding the git user?
 TODO: force chroot?
