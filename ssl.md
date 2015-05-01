@@ -114,3 +114,16 @@ In your site cookbook default recipe:
       content node['sample']['certs']['crt']
     end
    
+# Unformatted 
+
+## Certificate pinning / HSTS / etc
+
+* http://stackoverflow.com/questions/16613081/ssl-pinning-with-afnetworking
+* https://www.owasp.org/index.php/Pinning_Cheat_Sheet
+* https://www.owasp.org/index.php/Certificate_and_Public_Key_Pinning
+* http://initwithfunk.com/blog/2014/03/12/afnetworking-ssl-pinning-with-self-signed-certificates/
+* http://stackoverflow.com/questions/15728636/how-to-pin-the-public-key-of-a-certificate-on-ios
+* https://github.com/AFNetworking/AFNetworking/issues/1852   
+
+Certificate pinning has downsides (key rotation, key expiration and revocation). In such cases it is better to use public key pinning.
+

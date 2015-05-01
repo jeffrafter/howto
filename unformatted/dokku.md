@@ -122,7 +122,7 @@ This will block all external incoming communications except SSH, HTTP and HTTPS.
 
     504 Gateway Timeout
 
-The following rule allows you accept all inter-container communication coming in on the `docker0` interface and going bad to the destination IP of your `docker0` inet (this address can change per host, to find yours `ifconfig docker0` and see the `inet addr`)
+The following rule allows you accept all inter-container communication coming in on the `docker0` interface and going back to the destination IP of your `docker0` inet (this address can change per host, to find yours `ifconfig docker0` and see the `inet addr`)
 
     # The answer:
     ufw allow in on docker0 to 172.17.42.1
