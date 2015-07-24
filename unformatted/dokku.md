@@ -46,6 +46,11 @@ There are some cases where you want to Request a TTY when you run dokku commands
     Host yourserver.com
     RequestTTY yes
 
+On the server you may have limited SSH access to a specific group. You may need to add the dokku user to that group:
+
+    usermod -a -G ssh-user dokku
+
+
 ## Making sure you have the dokku client
 
 To install the bash client simply clone it into your home folder:
@@ -143,6 +148,60 @@ If it connects then Redis is exposed to the world. After enabling the firewall i
 * [Connecting via docker links](https://docs.docker.com/userguide/dockerlinks/)
 * [Stop the firewall blocking](http://stackoverflow.com/questions/17394241/my-firewall-is-blocking-network-connections-from-the-docker-container-to-outside)
 
+# Swap
+
+If you are seeing this error:
+
+    runtime: panic before malloc heap initialized
+    fatal error: runtime: cannot allocate heap metadata
+
+You are running out of disk space. This is [fairly common](https://github.com/docker/docker/issues/1555) on smaller cloud instances, especially when deploying as the number of containers is doubled. To get around this you can add Swap for your memory, which will slow down your server, but keep it running.
+
+    sudo dd if=/dev/zero of=/swapfile bs=1MB count=4096
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    
+Next you need to add this to `/etc/fstab`:
+
+    /swapfile   none    swap    sw    0   0
+    
+You should tweak the swappiness lower and tweak the inode caching. In `/etc/sysctl.conf`:
+
+    vm.swappiness=10
+    vm.vfs_cache_pressure=50
+
+#### Footnotes
+
+* [https://www.digitalocean.com/community/tutorials/how-to-add-swap-on-ubuntu-14-04](https://www.digitalocean.com/community/tutorials/how-to-add-swap-on-ubuntu-14-04)
+
+
+## SSL
+
+Get your [SSL](../ssl.md) certificate.
+
+Then:
+
+    cp YOURSITE.com.key server.key
+    cp YOURSITE.com.crt server.crt
+    tar cf certs.tar server.key server.crt
+    
+Then from your dokku folder:    
+
+    dokku nginx:import-ssl YOURAPP < certs.tar
+    
+Then you'll need to push your application to rebuild.
+
+You'll also possibly want to disable VHOSTS
+
+    dokku config:set "NO_VHOST=1"
+
+# Troubleshooting
+
+For some reason my app was deployed and there was no VHOST and therefore no nginx. To solve the problem:
+
+     dokku domains:add api.rpl.cat
+
   
 # TODO
   
@@ -176,3 +235,9 @@ Some attempts at getting around the ufw problem:
     ufw allow in on docker0 from 172.17.42.1
     ufw allow out on docker0 to 172.17.42.1
     ufw reload
+
+## Adding another SSH Key
+
+Upload a public key to the server, then switch to root:
+
+    # cat PUBKEYFILE.pub | sshcommand acl-add dokku

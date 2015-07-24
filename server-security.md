@@ -34,7 +34,7 @@ Next edit `/etc/apt/apt.conf.d/10periodic` so it looks like:
 Now we want a user. We'll call this user `deploy`:
 
     useradd -D -s /bin/bash
-    useradd deploy
+    useradd deploy --shell /bin/bash
     mkdir /home/deploy
     mkdir /home/deploy/.ssh
     chmod 700 /home/deploy/.ssh
@@ -244,7 +244,33 @@ For example, on Cloudflare you might have entries like this:
 
 ![Sample DNS config](./images/mail-dns-records.png "DNS")
 
+### Forwarding mail
 
+From [How to setup MX forwarding](http://www.cyberciti.biz/faq/linux-unix-bsd-postfix-forward-email-to-another-account/)
+
+In `/etc/postfix/main.cf` add the following:
+
+    virtual_alias_domains = example.com 
+    virtual_alias_maps = hash:/etc/postfix/virtual
+    
+If you followed the previous section you'll actually need to change your `inet_interfaces` line:
+
+    inet_interfaces = all    
+
+Then in `/etc/postfix/virtual`: 
+
+    # you can add specific virtual emails here for specific forwarding
+    @example.com   youremail@gmail.com    
+    
+Then restart the service:
+
+    postmap /etc/postfix/virtual    
+    service postfix reload
+    
+Now that your server can forward email you'll want to ensure the port is open (see the Firewall section below) and that the MX domain records are pointing to your server.    
+
+Test that your server is configured correctly (and is not an open relay) using a service like [http://mxtoolbox.com/diagnostic.aspx](http://mxtoolbox.com/diagnostic.aspx)
+    
 ### Watching the logs
 
 Next get logwatch:
@@ -488,6 +514,7 @@ Note, this means that you won't be able to SSH from a coffee-shop, the office, e
     
     ufw allow 443
     ufw allow 80
+    ufw allow 25
     ufw enable
 
 * [http://blog.viktorpetersson.com/post/101707677489/the-dangers-of-ufw-docker](http://blog.viktorpetersson.com/post/101707677489/the-dangers-of-ufw-docker)
@@ -532,6 +559,8 @@ See [http://ubuntuforums.org/showthread.php?t=862620](http://ubuntuforums.org/sh
 
 
 ## OSSEC
+
+https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-ossec-security-notifications-on-ubuntu-14-04
 
 ## logstash
 

@@ -46,7 +46,7 @@ Now you have the Certificate request files. Go through a service (like [https://
 
 Startssl is a good option to use because the generated certs are approved and you can get a free cert for a single domain. The website can be sluggish if it is overloaded, but that is only a problem when generating your request. They are also a great option for Wildcard and Verified certs if you need them.
 
-**Note**: StartSSL will work for the root domain and 1 subdomain only for the fee option.
+**Note**: StartSSL will work for the root domain and 1 subdomain only for the free option.
 
 Go to:
 

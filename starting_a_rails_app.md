@@ -465,3 +465,23 @@ You may need to update your test database:
     bundle exec rake RAILS_ENV=test rake db:migrate
 
 
+## Money in Rails
+
+Don't represent money using floating point numbers. Use the [monetize](https://github.com/RubyMoney/monetize) gem and the [money-rails](https://github.com/RubyMoney/money-rails) gem:
+
+    gem 'monetize'
+    gem 'money-rails'
+
+And setup the initializer:
+
+    rails g money_rails:initializer 
+    
+Store your fields as integers with cents (you can customize this with currencies using the `t.money` method):
+
+    t.integer :price_cents, default: 0    
+    
+Then in your models:
+
+    class Product < ActiveRecord::Base
+      monetize :price_cents # allow_nil: true
+    end
