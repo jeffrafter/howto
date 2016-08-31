@@ -139,6 +139,32 @@ Save the file and enable the aliases:
 
     newaliases
 
+
+#### An alternate email host
+
+What if the box you are creating is actually `api.example.com` but you want the email it is sending out to appear to be from `example.com`. You can change this (with the caveat that your RDNS will not be right). In `/etc/postfix/main.cf` change:
+
+    myhostname = api.example.com
+    
+To:
+
+    myhostname = example.com    
+
+And change:
+
+    mydestination = api.example.com, localhost.example.com, localhost
+    
+To:
+
+    mydestination = example.com, localhost    
+    
+Then change `/etc/mailname` to 
+
+    example.com    
+
+#### Testing email
+
+
 Test that sending mail works:
 
     echo "This is the body" | mail -s "The subject" root
@@ -149,7 +175,6 @@ Test that sending mail works:
 * [https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-postfix-as-a-send-only-smtp-server-on-ubuntu-14-04](https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-postfix-as-a-send-only-smtp-server-on-ubuntu-14-04)
 * [https://www.digitalocean.com/community/tutorials/how-to-use-an-spf-record-to-prevent-spoofing-improve-e-mail-reliability](https://www.digitalocean.com/community/tutorials/how-to-use-an-spf-record-to-prevent-spoofing-improve-e-mail-reliability)
 * [https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-dkim-with-postfix-on-debian-wheezy](https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-dkim-with-postfix-on-debian-wheezy)
-
 
 Make sure the PTR record (the name of your droplet) matches your fully qualified domain name (FQDN). For example, if you domain is example.com, then your mailing host above should be example.com and your droplet should be called example.com. Your PTR record is managed by your hosting provider (not your DNS).
 

@@ -116,6 +116,39 @@ In your site cookbook default recipe:
    
 # Unformatted 
 
+
+## Let's Encrypt!
+
+Let's Encrypt is all the new new.
+
+_On Ubuntu 14.04 for Nginx_ 
+
+https://www.nginx.com/blog/free-certificates-lets-encrypt-and-nginx/
+
+.[https://certbot.eff.org/#ubuntutrusty-nginx](https://certbot.eff.org/#ubuntutrusty-nginx)
+
+    sudo su deploy
+    cd /home/deploy
+    mkdir ssl
+    cd ssl
+    wget https://dl.eff.org/certbot-auto
+    chmod a+x certbot-auto
+    sudo service nginx stop # takes down the server
+    ./certbot-auto certonly
+    sudo service nginx start
+    
+    
+Choose temporary webserver
+https://rpl.cat/mWC85ufneufIqsbyEisgcwVKI8F4Pqy4I5SCbozz7g0
+
+Enter your email
+https://rpl.cat/OEkAKmJgS4-ZeqzlwRoFsc8fFoKfa11TuXwlHHCf9cU
+
+
+Enter domain names:
+https://rpl.cat/RySYznG66K65T1SUXxbvvXPACqyPlkDEn9ldUEUgDdE
+
+
 ## Certificate pinning / HSTS / etc
 
 * http://stackoverflow.com/questions/16613081/ssl-pinning-with-afnetworking
@@ -126,4 +159,65 @@ In your site cookbook default recipe:
 * https://github.com/AFNetworking/AFNetworking/issues/1852   
 
 Certificate pinning has downsides (key rotation, key expiration and revocation). In such cases it is better to use public key pinning.
+
+
+
+
+
+```
+server {
+  listen      [::]:80;
+  listen      80;
+  server_name click.rpl.cat;
+
+  location /.well-known/acme-challenge {
+    root /var/www/letsencrypt;
+  }
+
+  return 301 https://click.rpl.cat$request_uri;
+}
+
+server {
+  listen      [::]:80;
+  listen      80;
+  server_name api.rpl.cat;
+  
+  location /.well-known/acme-challenge {
+    root /var/www/letsencrypt;
+   }
+   
+   return 301 https://api.rpl.cat$request_uri;
+}  
+
+server {
+  listen      [::]:443 ssl spdy;
+  listen      443 ssl spdy;
+  server_name api.rpl.cat;
+  server_name click.rpl.cat;
+  # ssl_certificate     /home/dokku/api.rpl.cat/tls/server.crt;
+  # ssl_certificate_key /home/dokku/api.rpl.cat/tls/server.key;
+  
+   ssl_certificate /etc/letsencrypt/live/api.rpl.cat/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/api.rpl.cat/privkey.pem;
+  
+  
+  keepalive_timeout   70;
+  add_header          Alternate-Protocol  443:npn-spdy/2;
+  location    / {     
+    proxy_pass  http://api.rpl.cat;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection upgrade;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Request-Start $msec;
+  } 
+  include /home/dokku/api.rpl.cat/nginx.conf.d/*.conf;
+} 
+upstream api.rpl.cat { server 172.17.0.175:5000; }
+```
+
+
 

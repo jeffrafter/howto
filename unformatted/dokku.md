@@ -4,69 +4,120 @@
 
 ## On Digital Ocean
 
-1. Create a new droplet on Digital Ccean (10$ per month)
-2. Make sure you select your SSH key to be installed
-3. Select the Dokku application 
-4. Once provisioned open the IP of the new droplet in your browser
-5. Setup the host on your local machine or on your DNS provider
+Create a new droplet on [Digital Ocean](https://www.digitalocean.com/?refcode=21447a91b37b) (10$ per month). You might opt for a larger plan but this will be enough to run Rails and Sidekiq. When you create the droplet you must give it a `hostname`. This can match your primary domain, or if this is a service for you main domain you can use a subdomain such as `admin.example.com`.
 
-    ```
-    sudo nano /etc/hosts 
-    ```
+Generally I choose the following options:
 
-6. SSH into droplet and add the following plugins
+* **Select Size**: 10$ per month
+* **Select Region**: New York
+* **Select Image** (Distribution): Ubuntu 16.04 x64
+* **Select Image** (Applications): Dokku 0.4.2
+* **Available Settings**: Backups
+* **Add SSH Keys**: *Choose one of the SSH keys on your account*
 
-   ```
-   ssh root@YOUR_NEW_IP
-   ```
-	
-8. Run this code:
+> Note: Do not select the IPv6 as docker doesn't support it well.
 
-    ```     
-    mkdir -p /var/log/dokku # For logging-supervisord
-    chown dokku:dokku /var/log/dokku
+Once you create the droplet (about 20 seconds) Digital Ocean immediately begins recording charges for your account. After the droplet has been created, the page will refresh and you can copy the IP address. You can use this address directly or you can setup DNS or just an an entry to your local `/etc/hosts`.
 
-    cd /var/lib/dokku/plugins
-    git clone https://github.com/Kloadut/dokku-pg-plugin postgresql
-    git clone https://github.com/luxifer/dokku-redis-plugin redis
-    git clone https://github.com/sehrope/dokku-logging-supervisord logging-supervisord
-    git clone https://github.com/rlaneve/dokku-link.git link
-    dokku plugins-install
-    ```
+### Complete the dokku install
+
+Open the IP address in your browser.
+
+Change the hostname to match the name of your droplet (i.e., `example.com` or `admin.example.com`). Then click `Finish Setup`.
+
+### First Five Minutes
+
+By default the droplet is not very secure. There are numerous tutorials on how to setup an Ubuntu box in the first five minutes but I generally use a simple script. Login to the server from your local machine via SSH:
+
+    ssh root@example.com
+
+You'll be asked to trust the server; type `yes`. 
+
+On the server:
+
+    git clone git://github.com/jeffrafter/server.git
+    cd server
+    cp scripts/env.sh.example scripts/env.sh
+    nano scripts/env.sh
+   
+Your settings should look like:
+
+    ROOT_PASSWORD="SOME_PASSWORD"
+    DEPLOY_PASSWORD="SOME_PASSWORD"
+    ROOT_EMAIL="youremail@gmail.com"
+    OPS_EMAIL="youremail@gmail.com"
+    VIRTUAL_EMAIL="youremail@gmail.com"
+    DOMAIN="$HOSTNAME"
+    APPLICATION_NAME="$HOSTNAME"
     
-Currently the `dokku-logging-supervisord` plugin will hang when deploying after it re-installs `supervisord` (or skips the install). Just hit enter (twice?) to avoid this. 
+Run the script:
 
-A branch is underway to incorporate the scaling and Procfile handling of the `dokku-logging-supervisord` directly into dokku. It is unclear if it will still use `supervisord` to manage process crashes. Additionally, it will not include log centralization which may be a priority.
+    scripts/setup.sh
     
+> Note: once you run this script your SSH will be reconfigured. You will no longer be able to SSH to the server as `root`, but instead must SSH using the `deploy` user. Additionally, the SSH signature of the server will be updated and will not match the `known_hosts` entry from your current login. When you next login (if you don't remove the `~/.ssh/known_hosts` entry) you will receive an error. 
 
-## Setting up your ssh
+Now that the server is secure you'll need to enable a couple of Dokku specific settings. First make the `dokku` user part of the `ssh-user` group:
 
-There are some cases where you want to Request a TTY when you run dokku commands:
+    usermod -a -G ssh-user dokku
+    
+### Create the app
+
+
+    dokku apps:create yourappname
+
+### Plugins
+  
+Next you'll want to install any plugins you need (http://dokku.viewdocs.io/dokku/community/plugins/). You'll want to install these plugins on the server as root: This is my standard set:
+  
+    sudo dokku plugin:install https://github.com/dokku/dokku-postgres.git
+    dokku postgres:create yourappname-database
+    dokku postgres:link yourappname-database yourappname
+    
+    sudo dokku plugin:install https://github.com/dokku/dokku-redis.git redis
+    dokku redis:create yourappname-redis
+    dokku redis:link yourappname-database yourappname
+
+> Note if you closed your previous SSH session you can reconnect as the `deploy` user and then switch the `root` user using `sudo` or prefix these commands with `sudo`.
+    
+## Setting up your local machine SSH
+
+There are some cases where you want to Request a TTY when you run `dokku` commands (this is generally the case, though it may interrupt some functionality like importing a database dump). To do this you need to modify your local `~/.ssh/config`. Add the following:
 
     Host yourserver.com
     RequestTTY yes
-
-On the server you may have limited SSH access to a specific group. You may need to add the dokku user to that group:
-
-    usermod -a -G ssh-user dokku
-
 
 ## Making sure you have the dokku client
 
 To install the bash client simply clone it into your home folder:
 
-    git clone git@github.com:progrium/dokku.git ~/.dokku
+    git clone git://github.com/progrium/dokku.git ~/.dokku
 
-In your `~/.bashrc` you'll want the following alias:
+In your `~/.bashrc` or `~/.bash_profile` you'll want the following alias:
 
     alias dokku='$HOME/.dokku/contrib/dokku_client.sh'
+    
+## Deploying the application 
 
+At this point you are ready to create your application. Within your project folder on your local machine you want to add a remote for `dokku`:
+
+    git remote add dokku dokku@example.com:example.com
+    
+In this case the hostname (example.com) and the application name (example.com) are the same. Once added, push the application:
+
+    git push dokku master
+    
+This should deploy the application, though you may need a couple more things before it is operational.        
 
 ## Working with the database
 
 From your local machine:
   
-    dokku postgresql:create your_app_name
+    dokku postgres:create example.com
+    
+And link it:
+
+    dokku postgres:link example.com example.com
+    
 
 Migrating your database is not automatic:
 
@@ -80,26 +131,40 @@ To seed your database:
     
 From your local machine:
     
-    dokku redis:create your_app_name
+    dokku redis:create example.com
 
+And link it:
+
+    dokku redis:link example.com example.com
     
-## Seeing logs from rails
+## Domains
 
-If you have centralized logging from your local machine you should be able to run:
+For some reason my app was deployed and there was no `VHOST` and therefore the default `nginx` configuration wasn't generated. To solve the problem, first ensure that the `NO_VHOST` setting is not set:
 
-    dokku logs -t
+    dokku config
+    
+If it is set (`1`) then unset it:
 
-Otherwise:
+    dokku config:unset NO_VHOST
 
-1. Make sure your `production.rb` has a log_level set to `debug`.
-2. SSH to the machine
-3. Run `docker ps`
-4. Find the container id of the container that is running `web` and `docker attach <container_id>`
-5. Watch the logs happen (these are the default logs as they pipe to STDOUT on the rails process)
-6. To quit you need to type `^[` which on OSX is ALT+Enter.
-  
+Then add the domain:
 
-## Firewalls, iptables and docker
+    dokku domains:add example.com example.com
+
+## Config
+
+I set my config up in one command from my local:
+
+    dokku config:set `cat .env | grep -v RACK_ENV | grep -v PORT`
+    
+
+
+================
+
+
+### Firewalls, iptables and docker
+
+> Note this did not seem to be needed as of 0.4.2?
 
 Currently the state of the art is confusing. [This is the simplest tutorial](https://www.digitalocean.com/community/tutorials/the-docker-ecosystem-networking-and-communication). Docker has multiple networking modes but by default will allow everything to be open and accessible from the outside world.
 
@@ -148,6 +213,30 @@ If it connects then Redis is exposed to the world. After enabling the firewall i
 * [Connecting via docker links](https://docs.docker.com/userguide/dockerlinks/)
 * [Stop the firewall blocking](http://stackoverflow.com/questions/17394241/my-firewall-is-blocking-network-connections-from-the-docker-container-to-outside)
 
+
+
+
+
+
+    
+## Seeing logs from rails
+
+If you have centralized logging from your local machine you should be able to run:
+
+    dokku logs -t
+
+Otherwise:
+
+1. Make sure your `production.rb` has a log_level set to `debug`.
+2. SSH to the machine
+3. Run `docker ps`
+4. Find the container id of the container that is running `web` and `docker attach <container_id>`
+5. Watch the logs happen (these are the default logs as they pipe to STDOUT on the rails process)
+6. To quit you need to type `^[` which on OSX is ALT+Enter.
+  
+
+
+
 # Swap
 
 If you are seeing this error:
@@ -175,7 +264,6 @@ You should tweak the swappiness lower and tweak the inode caching. In `/etc/sysc
 
 * [https://www.digitalocean.com/community/tutorials/how-to-add-swap-on-ubuntu-14-04](https://www.digitalocean.com/community/tutorials/how-to-add-swap-on-ubuntu-14-04)
 
-
 ## SSL
 
 Get your [SSL](../ssl.md) certificate.
@@ -196,11 +284,6 @@ You'll also possibly want to disable VHOSTS
 
     dokku config:set "NO_VHOST=1"
 
-# Troubleshooting
-
-For some reason my app was deployed and there was no VHOST and therefore no nginx. To solve the problem:
-
-     dokku domains:add api.rpl.cat
 
   
 # TODO

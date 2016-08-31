@@ -1,0 +1,113 @@
+$ROOT_PASSWORD=
+$DEPLOY_PASSWORD=
+$ROOT_EMAIL="forward@example.com"
+$OPS_EMAIL="forward@example.com"
+$VIRTUAL_EMAIL="jeffrafter@gmail.com"
+$DOMAIN="example.com"
+$WILDCARD_DOMAIN="*.example.com"
+
+setup_root_user() {
+  passwd
+}
+
+setup_deploy_user() {
+  useradd -D -s /bin/bash
+  useradd deploy --shell /bin/bash
+  mkdir /home/deploy
+  mkdir /home/deploy/.ssh
+  chmod 700 /home/deploy/.ssh
+  cp /home/root/.ssh/authorized_keys /home/deploy/.ssh/authorized_keys
+
+  passwd deploy
+
+  usermod -a -G sudo deploy
+  usermod -a -G ssh-user deploy
+}
+
+setup_automatic_updates() {
+  apt-get -y update
+  apt-get -y upgrade
+  apt-get -y install unattended-upgrades
+
+  echo "APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Download-Upgradeable-Packages "1";\nAPT::Periodic::AutocleanInterval "7";\nAPT::Periodic::Unattended-Upgrade "1";" > /etc/apt/apt.conf.d/10periodic
+}
+
+setup_ssh() {
+  groupadd ssh-user
+}
+
+setup_mail_aliases() {
+  echo "root: $ROOT_EMAIL" >> /etc/aliases
+  echo "ops: $OPS_EMAIL" >> /etc/aliases
+
+  newaliases
+}
+
+setup_mail_opendkim() {
+  apt-get install -y --force-yes opendkim opendkim-tools
+
+  echo "AutoRestart Yes\nAutoRestartRate 10/1h\nSyslogSuccess Yes\nLogWhy Yes\n\nCanonicalization relaxed/simple\n\nExternalIgnoreList refile:/etc/opendkim/TrustedHosts\nInternalHosts refile:/etc/opendkim/TrustedHosts\nKeyTable refile:/etc/opendkim/KeyTable\nSigningTable refile:/etc/opendkim/SigningTable\n\nMode sv\nPidFile /var/run/opendkim/opendkim.pid\nSignatureAlgorithm rsa-sha256\n\nUserID opendkim:opendkim\n\nSocket inet:12301@localhost" >> /etc/opendkim.conf
+  echo "SOCKET="inet:12301@localhost"" >> /etc/default/opendkim
+
+  echo "milter_protocol = 6\nmilter_default_action = accept\nsmtpd_milters = inet:localhost:12301\nnon_smtpd_milters = inet:localhost:12301"
+
+  echo "127.0.0.1\nlocalhost\n192.168.0.1/24\n$WILDCARD_DOMAIN" >> /etc/opendkim/TrustedHosts
+  echo "mail._domainkey.$DOMAIN $DOMAIN:mail:/etc/opendkim/keys/$DOMAIN/mail.private" >> /etc/opendkim/KeyTable
+  echo "*@$DOMAIN mail._domainkey.$DOMAIN" >> /etc/opendkim/SigningTable
+
+  mkdir -p /etc/opendkim/keys/$DOMAIN
+  cd /etc/opendkim/keys/$DOMAIN
+  opendkim-genkey -s mail -d $DOMAIN
+  chown opendkim:opendkim mail.private
+
+  echo "Copy the p value and create a TXT DNS entry"
+  cat mail.txt
+  echo 'TXT mail._domainkey "v=DKIM1; k=rsa; p=YOUR_P_VALUE_HERE"'
+
+  cd ~
+  service postfix restart
+  service opendkim restart
+}
+
+setup_mail_forwarding() {
+
+  echo "virtual_alias_domains = $DOMAIN" >> /etc/postfix/main.cf
+  echo "virtual_alias_maps = hash:/etc/postfix/virtual" >> /etc/postfix/main.cf
+
+  echo "# you can add specific virtual emails here for specific forwarding" >> /etc/postfix/virtual
+  echo "@$DOMAIN   $VIRTUAL_EMAIL " >> /etc/postfix/virtual
+
+  postmap /etc/postfix/virtual
+  service postfix reload
+}
+
+setup_mail() {
+  debconf-set-selections <<< "postfix postfix/mailname string $HOSTNAME"
+  debconf-set-selections <<< "postfix postfix/main_mailer_type string 'Internet Site'"
+  DEBIAN_FRONTEND=noninteractive apt-get -y install postfix
+  apt-get -y install mailutils
+
+  # sed -e 's/inet_interfaces = all/inet_interfaces = localhost/g' /etc/postfix/main.cf > /etc/postfix/main.cf.bak && mv /etc/postfix/main.cf.bak /etc/postfix/main.cf
+  service postfix restart
+
+  setup_mail_aliases
+  setup_mail_opendkim
+  setup_mail_forwarding
+}
+
+setup_logwatch() {
+  apt-get -y --force-yes install logwatch
+  mkdir /var/cache/logwatch
+  cp /usr/share/logwatch/default.conf/logwatch.conf /etc/logwatch/conf/
+  sed -e "s/--output mail/--mailto $OPS_EMAIL/g" /etc/cron.daily/00logwatch > /etc/cron.daily/00logwatch.bak && mv /etc/cron.daily/00logwatch.bak /etc/cron.daily/00logwatch
+}
+
+setup_fail2ban() {
+  apt-get -y --force-yes install fail2ban
+  echo "[DEFAULT]\n ignoreip  = 127.0.0.1\n bantime   = 86400\n destemail = $OPS_EMAIL\n banaction = iptables-multiport\n action    = %(action_)s\n \n # JAILS\n [ssh]\n enabled   = true\n maxretry  = 3\n \n [pam-generic]\n enabled   = true\n banaction = iptables-allports\n \n [ssh-ddos]\n enabled   = true\n \n [apache]\n enabled = true\n \n [nginx-http-auth]\n enabled = true\n \n [postfix]\n enabled  = true\n maxretry = 1\n \n [dovecot-pop3imap]\n enabled = true\n filter = dovecot-pop3imap\n action = iptables-multiport[name=dovecot-pop3imap, port=\"pop3,imap,993,995\", protocol=tcp]\n logpath = /var/log/mail.log\n maxretry = 20\n findtime = 1200\n bantime = 1200\n" > /etc/fail2ban/jail.local
+}
+
+setup_rootkits() {
+  apt-get -y --force-yes install lynis
+  apt-get -y --force-yes install rkhunter
+}

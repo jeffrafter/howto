@@ -327,7 +327,173 @@ Change the white-list.txt
      change the whitelist
      
      
+## Spigot
+
+Spigot is the new craftbukkit. Get it. In order to get it you'll need to install the `BuildTools.jar` (docs [here](https://www.spigotmc.org/threads/buildtools-updates-information.42865/)) and build it.
+
+    cd /var/minecraft
+    wget "https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar" -O BuildTools.jar
+    java -jar BuildTools.jar --rev 1.9    
+
+Building takes about 10 minutes.
+
+
+Make a file called `./craftbukkit.sh`
+
+    #!/bin/sh
+    BINDIR=$(dirname "$(readlink -fn "$0")")
+    cd "$BINDIR"
+    java -Xmx1536M -jar craftbukkit-1.8.8.jar -o true
+
+Change the mode
+
+	chmod +x ./craftbukkit.sh
+	
+Run it
+
+	./craftbukkit.sh
+	
+	
+## Plugins
+
+### Bending	
+
+Bending instructions are found at [http://dev.bukkit.org/bukkit-plugins/minecraft-last-airbender/files/14-bending-v1-1-0/](http://dev.bukkit.org/bukkit-plugins/minecraft-last-airbender/files/14-bending-v1-1-0/)
+
+    cd /var/minecraft/plugins
+    wget http://dev.bukkit.org/media/files/722/749/Bending.jar
+
+### BullionEconomy
+
+[http://dev.bukkit.org/bukkit-plugins/bullioneconomy/](http://dev.bukkit.org/bukkit-plugins/bullioneconomy/))
+
+[http://dev.bukkit.org/bukkit-plugins/bullioneconomy/files/12-bullion-economy-v0-91/](http://dev.bukkit.org/bukkit-plugins/bullioneconomy/files/12-bullion-economy-v0-91/)
+
+    cd /var/minecraft/plugins
+    wget http://dev.bukkit.org/media/files/896/296/Bullion-STABLE-BUILD.jar
+
+### Disease (Byte Disease)
+
+[http://dev.bukkit.org/bukkit-plugins/byte-disease/](http://dev.bukkit.org/bukkit-plugins/byte-disease/)
+
+    cd /var/minecraft/plugins
+    wget http://dev.bukkit.org/media/files/898/525/Disease-1.7.jar
+
+
+### MobCatcher Lite
+
+https://www.spigotmc.org/resources/mobcatcher-lite.4065/
+
+Download it to `~/Downloads`
+
+    scp ~/Downloads/MobCatcherLite.jar minecraft@fire:/var/minecraft/plugins
+    
+### MoveCraft
+
+http://dev.bukkit.org/bukkit-plugins/movecraft/
+
+    wget http://dev.bukkit.org/media/files/882/670/Movecraft.jar
+
+### MythicMobs
+
+http://dev.bukkit.org/bukkit-plugins/mythicmobs/files/57-mythic-mobs-v2-1-6/
+
+    wget http://dev.bukkit.org/media/files/902/616/MythicMobs-2.1.6.jar
+
+### TARDISVortexManipulator
+
+http://dev.bukkit.org/bukkit-plugins/tardisvortexmanipulator/
+
+### CreativeGates
+
+http://dev.bukkit.org/bukkit-plugins/creativegates/
+
+    wget http://dev.bukkit.org/media/files/900/525/CreativeGates.jar
+
+
+### Factions
+
+http://dev.bukkit.org/bukkit-plugins/factions/
+
+It requires MassiveCore http://dev.bukkit.org/bukkit-plugins/mcore/
+
+
+    wget http://dev.bukkit.org/media/files/900/523/MassiveCore.jar
+    wget http://dev.bukkit.org/bukkit-plugins/factions/files/77-2-8-2/
+
+
+
+
+betonquest (1.8?)
+http://dev.bukkit.org/media/files/910/403/BetonQuest.jar
+
+bettercrops
+http://dev.bukkit.org/media/files/911/336/better_crops.jar
+
+dynamap
+http://dev.bukkit.org/media/files/888/859/dynmap-2.2.jar
+
+multiverse2 (no)
+http://ci.onarandombox.com/job/Multiverse-Core/lastSuccessfulBuild/artifact/target/Multiverse-Core-2.5.jar
+
+citizens
+http://dev.bukkit.org/media/files/911/551/Citizens.jar
+
+worldedit (1.8?)
+http://dev.bukkit.org/media/files/880/435/worldedit-bukkit-6.1.jar
+
+iconomy (very old)
+http://dev.bukkit.org/media/files/584/551/iConomy.jar
+
+legendary weapons (1.8)
+http://dev.bukkit.org/media/files/878/794/LegendaryWeapons.jar
+
+legendary armor (1.8)
+http://dev.bukkit.org/media/files/878/795/LegendaryArmor.jar
+
+
+enchantplus (1.8)
+http://dev.bukkit.org/media/files/890/396/EnchantPlus_1.3.3.jar
+
+
+tardis (1.8)
+http://dev.bukkit.org/media/files/901/423/TARDIS.zip
+
+
+
+
+
+## Protecting your worlds
+
+Prevent griefing
+
+    gamerule keepInventory true
+    gamerule mobGriefing false
+ 
+## Resources
+
+* http://canihostaminecraftserver.com/
+* http://plusbryan.com/my-first-5-minutes-on-a-server-or-essential-security-for-linux-servers
+* https://www.digitalocean.com/community/articles/how-to-set-up-a-minecraft-server-on-linux
+* http://liamodonnell.com/feedingchange/2013/08/two-quick-ways-to-secure-your-minecraft-server/
+* http://liamodonnell.com/feedingchange/2013/02/five-essential-plugins-for-minecraft-school-servers/
+* http://wiki.bukkit.org/Setting_up_a_server#Linux
+* https://www.digitalocean.com/community/articles/how-to-add-swap-on-ubuntu-12-04
+* https://github.com/Ahtenus/minecraft-init
+* https://www.digitalocean.com/community/articles/how-to-add-swap-on-ubuntu-12-04
+* https://www.digitalocean.com/community/articles/how-to-install-nagios-on-ubuntu-12-10
+
+
+
+* http://blog.bitnami.com/2014/03/run-your-minecraft-server-in-cloud-with.html
+
+
+
+## Old
+
 ## Craftbukkit
+
+<span class="color:red">NOTE: CraftBukkit is no longer available</span>
 
     wget http://dl.bukkit.org/latest-rb/craftbukkit.jar
     nano craftbukkit.sh
@@ -360,47 +526,63 @@ Backup
  
 Edit the config.yml and strings.yml
 
-## Tekkit
+## Technic Platform (Tekkit, Attack of the B-team)
+
+First you need unzip:
 
     sudo apt-get install unzip
-
-    cd /var/minecraft
-    mkdir tekkit
-    cd tekkit
-    wget http://mirror.technicpack.net/Technic/servers/tekkitmain/Tekkit_Server_v1.2.6b.zip
-    unzip Tekkit_Server_v1.2.6b.zip
     
+Download the server. For us we want an Attack of the B Team server. So we went to the Technic Platform and searched for the modpack. [Go there](http://www.technicpack.net/modpack/attack-of-the-bteam.552556). Once there you can download the server. You'll need to secure copy this to your server:
+
+    scp ~/Downloads/BTeam_Server_v1.0.12c.zip minecraft@fire:/var/minecraft_attack/
+
+You might be able to do this directly. But this is how we did it.
+
+Unzip that:
+
+    unzip BTeam_Server_v1.0.12c.zip
+    
+Check that you don't need to change any `server.properties`    
+
     nano server.properties
     
-    cp ../white-list.txt .
+Copy over the whitelist:
+
+    cp ../minecraft/whitelist.json .
+
+Edit the launcher to max out at 2GB.
     
     nano launch.sh
+
+Make the launcher executable:    
     
     chmod +x launch.sh
+
+Launch:
     
     ./launch.sh
 
+Setup some rules (see above)
 
-## Protecting your worlds
-
-Prevent griefing
-
-    gamerule keepInventory true
-    gamerule mobGriefing false
- 
-## Resources
-
-* http://canihostaminecraftserver.com/
-* http://plusbryan.com/my-first-5-minutes-on-a-server-or-essential-security-for-linux-servers
-* https://www.digitalocean.com/community/articles/how-to-set-up-a-minecraft-server-on-linux
-* http://liamodonnell.com/feedingchange/2013/08/two-quick-ways-to-secure-your-minecraft-server/
-* http://liamodonnell.com/feedingchange/2013/02/five-essential-plugins-for-minecraft-school-servers/
-* http://wiki.bukkit.org/Setting_up_a_server#Linux
-* https://www.digitalocean.com/community/articles/how-to-add-swap-on-ubuntu-12-04
-* https://github.com/Ahtenus/minecraft-init
-* https://www.digitalocean.com/community/articles/how-to-add-swap-on-ubuntu-12-04
-* https://www.digitalocean.com/community/articles/how-to-install-nagios-on-ubuntu-12-10
+    /gamerule keepInventory true
+    /gamerule mobGriefing false
 
 
+### Revenge of the C Team
 
-* http://blog.bitnami.com/2014/03/run-your-minecraft-server-in-cloud-with.html
+https://www.atlauncher.com/pack/RevengeoftheCTeam
+
+https://servers.atlauncher.com/server/RevengeOfTheCTeam
+
+# Others
+
+betonquest
+bettercrops
+dynamap
+multiverse2
+citizens
+worldedit
+iconomy
+legendary weapons
+legendary armor
+enchantplus
