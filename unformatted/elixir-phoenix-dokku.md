@@ -115,7 +115,7 @@ Remove the old file
 
 Procfile:
 
-    web: MIX_ENV=prod mix phoenix.server
+    web: mix phoenix.server
 
 From your app:  
   
@@ -126,6 +126,24 @@ From your app:
     
 
 ## SSL 
+
+Via ssh:
+
+    sudo dokku plugin:install https://github.com/dokku/dokku-letsencrypt.git
+
+From your app:
+
+```
+dokku domains
+dokku domains:add yourserver.com
+dokku domains:add api.yourserver.com
+dokku domains:add click.yourserver.com
+dokku letsencrypt:cron-job --add
+dokku config:set --no-restart DOKKU_LETSENCRYPT_EMAIL=your@email.tld
+dokku letsencrypt
+```
+
+
 
 ...
 
