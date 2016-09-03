@@ -149,6 +149,10 @@ Create a new worker file in `app/workers/image_worker.rb`:
 In order to support the built in web interface you need to add Sinatra to your `Gemfile`:
 
     gem 'sinatra', '>= 1.3.0', :require => nil
+    
+On Rails 5 you'll need the latest:
+
+    gem 'sinatra', github: 'sinatra'
 
 Then in your `config/routes.rb` you'll need to require it (at the top of the file):
 
@@ -172,6 +176,13 @@ Notice that we used a custom constraint for authentication. Using this you can l
       end
     end
 
+See also: https://github.com/mperham/sidekiq/wiki/Monitoring#rails-http-basic-auth-from-routes
+
+```ruby
+Sidekiq::Web.use Rack::Auth::Basic do |username, password|
+  username == ENV["SIDEKIQ_USERNAME"] && password == ENV["SIDEKIQ_PASSWORD"]
+end if Rails.env.production?
+```
 
 ## Optimization
 
