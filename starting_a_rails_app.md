@@ -11,8 +11,8 @@ _Get your ruby ready_. I use rbenv and ruby-build. There are a few other options
     rbenv install -l
 
     # Install the newest
-    rbenv install 2.2.1
-    rbenv global 2.2.1
+    rbenv install 2.3.1
+    rbenv global 2.3.1
     gem install rake rails bundler foreman mailcatcher   
     
 _Install your basic gems_. If you have just installed a new version of ruby you might need to `gem install bundler rake rails` 
@@ -32,7 +32,7 @@ In this case my application folder is /projects/sample. This is my "Rails Root" 
 
 You want to use the latest ruby there (this creates a .ruby-version file):
 
-    rbenv local 2.2.1
+    rbenv local 2.3.1
 
 _Remove the test folder_. you want to use specs instead.
 
@@ -40,16 +40,7 @@ _Remove the test folder_. you want to use specs instead.
     
 ## Config
 
-Setup the most basic `config/application.rb`. By default you only need the
-following two options:
-
-    # Set the test framework to rspec
-    config.test_framework = :rspec
-
-    # Set the default encoding
-    config.encoding = "utf-8"
-
-You'll also want to set the host for the default urls:
+You'll also want to set the host for the default urls in the `config/environments/development.rb`:
 
     config.action_mailer.default_url_options = {
       host: Rails.application.secrets.domain,
@@ -88,22 +79,26 @@ If you use Safari when you develop you may run into refresh bugs because of Safa
 
 Setup the `Gemfile`. This sample Gemfile has quite a few helpful defaults, but you should compare it with the generated Gemfile and pick and choose:
 
+
     # You should specify the ruby version
-    ruby "2.2.1"
+    ruby "2.3.1"
 
     source 'https://rubygems.org'
 
-    # Standard rails, without coffee-script
-    gem 'rails', '4.2.1'
+    # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
+    gem 'rails', '~> 5.0.0', '>= 5.0.0.1'
+    # Use postgresql as the database for Active Record
+    gem 'pg', '~> 0.18'
+    # Use Puma as the app server
+    gem 'puma', '~> 3.0'
+    # Use SCSS for stylesheets
     gem 'sass-rails', '~> 5.0'
+    # Use Uglifier as compressor for JavaScript assets
     gem 'uglifier', '>= 1.3.0'
-    gem 'jquery-rails'
 
     # Processes
     gem 'foreman'
-    gem 'pg'
     gem 'sidekiq'
-    gem 'thin'
 
     # Heroku suggests the rails_12factor gem, but this should only
     # be used in production
@@ -121,11 +116,11 @@ Setup the `Gemfile`. This sample Gemfile has quite a few helpful defaults, but y
     gem 'strapless'
     gem 'awesome_print'
 
-    group :development do
-      # We want to be able to debug in development
-      gem 'pry'
+    group :development, :test do
       # Keeping the database fields in the models and specs makes things easier
       gem 'annotate'
+      # Call 'byebug' anywhere in the code to stop execution and get a debugger console
+      gem 'byebug', platform: :mri
     end
 
     group :test do
@@ -136,13 +131,19 @@ Setup the `Gemfile`. This sample Gemfile has quite a few helpful defaults, but y
 
     group :test, :development do
       # Get specs involved in this process
-      gem 'rspec-rails', '~> 3.1'
+      gem 'rspec-rails', '>= 3.5.0'
       gem 'shoulda-matchers'
       gem 'factory_girl_rails'
-      gem 'byebug'
-      gem 'web-console', '~> 2.0'
     end
 
+    # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
+    gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
+
+    group :test, :development do
+    end
+
+    group :test, :development do
+    end
 
 
 Once you are done, you need to bundle the gems for your version of ruby. This will automatically figure out all of the dependencies:
@@ -150,14 +151,25 @@ Once you are done, you need to bundle the gems for your version of ruby. This wi
     bundle
     
 > What if you are offline, working on an airplane desperately fighting bad wifi? You can install your gems from local sources using `bundle install --local`.
+
+### Shoulda matchers 
+
+Add the following to your `spec/rails_helper.rb`:
+
+```ruby
+require 'shoulda/matchers'
+
+Shoulda::Matchers.configure do |config|
+  config.integrate do |with|
+    with.test_framework :rspec
+    with.library :rails
+  end
+end
+```
     
 ## Documentation    
-
-Kill the README.rdoc:
-
-    rm README.rdoc
     
-long live the README.md:
+Long live the README.md:
 
     # Sample
     
@@ -248,8 +260,12 @@ Setup the `.gitignore`. This will keep all of the user specific files (and sensi
 
     # Ignore logs and temp files
     /log/*
-    !/log/.keep
     /tmp/*
+    !/log/.keep
+    !/tmp/.keep
+
+    # Ignore Byebug command history file.
+    .byebug_history
 
     # Ignore databases
     /db/*.sqlite3
@@ -271,10 +287,6 @@ Setup the `.gitignore`. This will keep all of the user specific files (and sensi
     # Vagrant
     .vagrant
 
-    # Chef
-    encrypted_data_bag_secret
-    chef/cookbooks
-    
     # Ignore config (optional)
     config/application.yml
     
@@ -287,6 +299,7 @@ Setup the `.gitignore`. This will keep all of the user specific files (and sensi
     # you must not check them in to the repository
     # config/database.yml
     # config/secrets.yml
+
 
 
 Make an initial commit and push it to the server:
@@ -371,7 +384,8 @@ Foreman helps you start up all of your processes in a predefined way. In order t
 
 You can use this to easily change the default port for your local Rails server. You'll also want a `Procfile`:
 
-    web:	bundle exec thin start -p $PORT -e $RACK_ENV
+    web:    bundle exec puma -p $PORT -e $RACK_ENV -C config/puma.rb
+    worker: bundle exec sidekiq
 
 Now, instead of running `rails s` you can run:
 

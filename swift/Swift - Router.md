@@ -126,6 +126,7 @@ extension Router.Routes {
 
 Create a new Swift file `Clients/Auth/Auth.swift`
 
+```swift
 import Foundation
 import Alamofire
 import Intercom
@@ -205,7 +206,7 @@ struct Auth {
     }
     
 }
-
+```
 
 ## That Phone extension
 

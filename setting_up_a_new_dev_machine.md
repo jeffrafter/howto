@@ -21,6 +21,8 @@
 * Turn up key repeat
 * Screen auto-off in 5 minutes
 * Karabiner: (customize everything) https://pqrs.org/osx/karabiner/document.html.en
+* XCode xvim https://github.com/XVimProject/XVim/blob/master/INSTALL_Xcode8.md
+* Insomnia - https://insomnia.rest/download/#mac
 
 ## 1Password?
 

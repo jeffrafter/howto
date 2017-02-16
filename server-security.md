@@ -164,7 +164,6 @@ Then change `/etc/mailname` to
 
 #### Testing email
 
-
 Test that sending mail works:
 
     echo "This is the body" | mail -s "The subject" root
@@ -185,6 +184,10 @@ Then add an SPF record to your DNS:
 This says that email sent from your A record, MX record, or PTR and from google.com should be allowed. It also allows your primary IP as a sender. With the setup described in this section, you could actually remove the MX (it isn't sending directly).
 
 Some DNS companies don't allow a specific "SPF" record. If you can add both an SPF record and a TXT record with the same value.
+
+> You can check that you have set this up correctly at [https://www.unlocktheinbox.com/dnstools/spf/](https://www.unlocktheinbox.com/dnstools/spf/)
+
+#### OpenDKIM
 
 For OpenDKIM, start by installing the package:
 
@@ -232,6 +235,10 @@ Specify Trusted hosts in `/etc/opendkim/TrustedHosts`:
 
     *.example.com
     
+    # Not sure if we need these
+    # example.com
+    # 172.17.0.0/16    
+    
 In `/etc/opendkim/KeyTable`:
 
     mail._domainkey.example.com example.com:mail:/etc/opendkim/keys/example.com/mail.private
@@ -239,8 +246,11 @@ In `/etc/opendkim/KeyTable`:
 In `/etc/opendkim/SigningTable`:
 
     *@example.com mail._domainkey.example.com    
+    *@api.example.com mail._domainkey.example.com    
+    
+> Note: if you have a subdomain but are sending as the root domain you can have multiple values here (on multiple lines) pointing to the same key.
 
-Make a key dir and key:
+Make a key dir and key (note, if you have a subdomain you can still sign but the TXT record may be impacted):
 
     mkdir -p /etc/opendkim/keys/example.com
     cd /etc/opendkim/keys/example.com
@@ -259,6 +269,10 @@ Restart:
 
 You can test the setup by sending mails at [http://www.mail-tester.com](http://www.mail-tester.com).
 
+Unfortunately testing via mail-tester.com is limited to 3 per day. To check that your DKIM record is correct instead go to http://dkimcore.org/c/keycheck. For your selector choose `mail` (this is the prefix for `mail._domainkey`) and then enter your root domain:
+
+![](https://rpl.cat/uploads/MRE-blRZTb2C53ogj3ac9DO8m0Vf3RunqV-cQEtT0aI/public.png)
+
 If you are sending via a third party domain you can explore ATPSDomains. Or you can set them up manually. For example Mandrill allows customization: https://mandrill.zendesk.com/hc/en-us/articles/205582387-How-do-I-set-up-sending-domains-
 
 Once you have completed your SPF and DKIM setup and have successfully tested them, you can add a `_dmarc` host (another TXT record) that helps ensure your SPF and DKIM are respected.
@@ -268,6 +282,50 @@ Once you have completed your SPF and DKIM setup and have successfully tested the
 For example, on Cloudflare you might have entries like this:
 
 ![Sample DNS config](./images/mail-dns-records.png "DNS")
+
+#### Troubleshooting
+
+Send yourself an email and view the raw source (in Mail.app it is `View` | `Message` | `Raw Source`)
+
+```
+Delivered-To: jeffrafter@gmail.com
+Received: by 10.31.59.7 with SMTP id i7csp785441vka;
+        Sun, 8 Jan 2017 12:25:30 -0800 (PST)
+X-Received: by 10.200.55.5 with SMTP id o5mr14642120qtb.248.1483907130557;
+        Sun, 08 Jan 2017 12:25:30 -0800 (PST)
+Return-Path: <info@example.com>
+Received: from admin.example.com (admin.example.com. [1.2.3.4])
+        by mx.google.com with ESMTP id u67si45157657qkb.264.2017.01.08.12.25.30
+        for <jeffrafter@gmail.com>;
+        Sun, 08 Jan 2017 12:25:30 -0800 (PST)
+Received-SPF: pass (google.com: domain of info@example.com designates 1.2.3.4 as permitted sender) client-ip=1.2.3.4;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@example.com;
+       spf=pass (google.com: domain of info@example.com designates 1.2.3.4 as permitted sender) smtp.mailfrom=info@example.com
+Received: by admin.example.com (Postfix, from userid 1001)
+	id 2E730152A5D; Sun,  8 Jan 2017 15:23:34 -0500 (EST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=example.com; s=mail;
+	t=1483907130; bh=fdkeB/A0FkbVP2k4J4pNPoeWH6vqBm9+b0C3OY87Cw8=;
+	h=Subject:To:Date:From:From;
+	b=GnitLFExKeciSLFD0W8wl7yBhsNlZ9M7rX8TuCAuVeMDB1YEL5J8ti15WD4wuZdLF
+	 DES3UVAZ0klBjfGXxdAgnLwVfh3UoRam4cP6dgGI08AwyFKHmenUWNUi4jUbxLAckC
+	 JWcfqxU6vfksO4famHKuKNR4kpjz0Tz+VuDdmaxg=
+Subject: The Subject
+To: <jeffrafter@gmail.com>
+X-Mailer: mail (GNU Mailutils 2.99.98)
+Message-Id: <20170108202530.2E730152A5D@admin.example.com>
+Date: Sun,  8 Jan 2017 15:23:34 -0500 (EST)
+From: info@example.com
+
+Test
+```    
+
+Here you can see if your DKIM and SPF records passed. If there is no DKIM record then it might not be signing correctly. This generally happens if there is not a `SigningTable` entry for the "from address" domain.
+
+If it is signed, but there is `dkim=temperror (no key for signature)` then it is likely that the `d=` value does not accurately reflect the `TXT` record in your DNS. For example if  you have `d=admin.example.com` but your `_domainkey` does not include the subdomain you'll see this error.
+
+If you can receive email on the reply-to address you can also test by sending an email to `mailtest@unlocktheinbox.com`.
+
 
 ### Forwarding mail
 
@@ -295,6 +353,25 @@ Then restart the service:
 Now that your server can forward email you'll want to ensure the port is open (see the Firewall section below) and that the MX domain records are pointing to your server.    
 
 Test that your server is configured correctly (and is not an open relay) using a service like [http://mxtoolbox.com/diagnostic.aspx](http://mxtoolbox.com/diagnostic.aspx)
+
+### Running mail from a Docker container
+
+To send email from within a Docker container (like Dokku), you need postfix to bind to the interface and then either setup TLS  for authentication or list the container network inside your `mynetworks` directive. 
+
+Docker creates its own network interface `docker0`. Modify `/etc/postfix/main.cf` and make sure you have:
+
+    inet_interfaces = all
+    
+Or that you have the interface listed:
+
+    inet_interfaces = eth0, docker0, lo
+    
+One this is set you can simply list your docker IP range:
+
+    mynetworks = 127.0.0.0/8 172.17.0.0/16 [::ffff:127.0.0.0]/104 [::1]/128    
+    
+You can find your docker range from `ifconfig` and look at the `docker0` interface. Also, you can `docker ps`, then grab a container name and `docker inspect <CONTAINER>`.
+    
     
 ### Watching the logs
 

@@ -40,8 +40,8 @@ Open a new SSH session as the `deploy` user:
         
 Next install dokku (http://dokku.viewdocs.io/dokku/getting-started/installation/)
 
-    wget https://raw.githubusercontent.com/dokku/dokku/v0.7.1/bootstrap.sh
-    sudo DOKKU_TAG=v0.7.1 bash bootstrap.sh
+    wget https://raw.githubusercontent.com/dokku/dokku/v0.7.2/bootstrap.sh
+    sudo DOKKU_TAG=v0.7.2 bash bootstrap.sh
 
 This takes about 5 minutes. Once complete open a browser pointed at your IP. Change the hostname to match your hostname and create.
 
