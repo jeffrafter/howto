@@ -1,5 +1,5 @@
-Starting a Rails app
-====================
+Starting a Rails app (v5.1)
+===========================
 
 This is only the basics. Getting your repository, your organization and getting some of the basic spec infrastructure setup.
 
@@ -11,8 +11,8 @@ _Get your ruby ready_. I use rbenv and ruby-build. There are a few other options
     rbenv install -l
 
     # Install the newest
-    rbenv install 2.3.1
-    rbenv global 2.3.1
+    rbenv install 2.4.1
+    rbenv global 2.4.1
     gem install rake rails bundler foreman mailcatcher   
     
 _Install your basic gems_. If you have just installed a new version of ruby you might need to `gem install bundler rake rails` 
@@ -23,7 +23,7 @@ _Initialize the project_. I have a folder called projects which I can access via
 
 Within my projects folder I will _start the new Rails app_ and this will create an application folder and generate all of the initial files:
 
-    rails new sample -d postgresql --skip-test-unit
+    rails new sample -d postgresql --skip-test-unit --skip-turbolinks
     cd sample
 
 > Note: if you are creating an app and plan to deploy to heroku you probably want to use postgres as your database. If you are using another platform you may not want postgres. In that case you should just create the app without that set: `rails new sample --skip-test-unit`
@@ -32,29 +32,13 @@ In this case my application folder is /projects/sample. This is my "Rails Root" 
 
 You want to use the latest ruby there (this creates a .ruby-version file):
 
-    rbenv local 2.3.1
+    rbenv local 2.4.1
 
 _Remove the test folder_. you want to use specs instead.
 
     rm -rf test
     
 ## Config
-
-You'll also want to set the host for the default urls in the `config/environments/development.rb`:
-
-    config.action_mailer.default_url_options = {
-      host: Rails.application.secrets.domain,
-      protocol: Rails.application.secrets.protocol
-    }
-
-This will set the `default_url_options` for the production and test environments as well. You might want:
-
-    config.action_mailer.asset_host = "#{Rails.application.secrets.protocol}://#{Rails.application.secrets.domain}"
-
-For Heroku, you'll need to configure the asset pipeline to compile. In `config/environments/production.rb`:
-    
-    # Do fallback to assets pipeline if a precompiled asset is missed.
-    config.assets.compile = true
 
 If you are sending email then you can use [Mailcatcher](http://mailcatcher.me) locally. This allows you to catch all email being sent from Rails and view it.
 
@@ -68,107 +52,103 @@ You'll need to configure mailcatcher in `config/environments/development.rb`:
     config.action_mailer.raise_delivery_errors = true
     config.action_mailer.perform_deliveries = true
 
-
-
-If you use Safari when you develop you may run into refresh bugs because of Safari's poor handling of 304 Not Modified. If so, add this to your `config/environments/development.rb`:
+This might be outdated:
 
     # Fix the Safari 304 not modified bug (https://bugs.webkit.org/show_bug.cgi?id=32829)
     config.middleware.delete Rack::ETag
+
 
 ## Gems
 
 Setup the `Gemfile`. This sample Gemfile has quite a few helpful defaults, but you should compare it with the generated Gemfile and pick and choose:
 
+```ruby
+# You should specify the ruby version
+ruby "2.4.1"
 
-    # You should specify the ruby version
-    ruby "2.3.1"
+source 'https://rubygems.org'
 
-    source 'https://rubygems.org'
+git_source(:github) do |repo_name|
+  repo_name = "#{repo_name}/#{repo_name}" unless repo_name.include?("/")
+  "https://github.com/#{repo_name}.git"
+end
 
-    # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-    gem 'rails', '~> 5.0.0', '>= 5.0.0.1'
-    # Use postgresql as the database for Active Record
-    gem 'pg', '~> 0.18'
-    # Use Puma as the app server
-    gem 'puma', '~> 3.0'
-    # Use SCSS for stylesheets
-    gem 'sass-rails', '~> 5.0'
-    # Use Uglifier as compressor for JavaScript assets
-    gem 'uglifier', '>= 1.3.0'
 
-    # Processes
-    gem 'foreman'
-    gem 'sidekiq'
+# Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
+gem 'rails', '~> 5.1.0'
+# Use postgresql as the database for Active Record
+gem 'pg', '~> 0.18'
+# Use Puma as the app server
+gem 'puma', '~> 3.7'
+# Use SCSS for stylesheets
+gem 'sass-rails', '~> 5.0'
+# Use Uglifier as compressor for JavaScript assets
+gem 'uglifier', '>= 1.3.0'
+# See https://github.com/rails/execjs#readme for more supported runtimes
+# gem 'therubyracer', platforms: :ruby
 
-    # Heroku suggests the rails_12factor gem, but this should only
-    # be used in production
-    group :production do
-      gem 'rails_12factor'
-    end
+# JSON
+gem 'active_model_serializers'
 
-    # Kits
-    gem 'authkit', git: 'https://github.com/jeffrafter/authkit'
-    gem 'errorkit', git: 'https://github.com/jeffrafter/errorkit'
-    gem 'notifykit', git: 'https://github.com/jeffrafter/notifykit'
-    gem 'uikit', git: 'https://github.com/jeffrafter/uikit'
+# Processes
+gem 'foreman'
+gem 'sidekiq'
 
-    # These are a couple of my favs, if I forget them I regret it
-    gem 'strapless'
-    gem 'awesome_print'
+# Heroku suggests the rails_12factor gem, but this should only
+# be used in production
+group :production do
+  gem 'rails_12factor'
+end
 
-    group :development, :test do
-      # Keeping the database fields in the models and specs makes things easier
-      gem 'annotate'
-      # Call 'byebug' anywhere in the code to stop execution and get a debugger console
-      gem 'byebug', platform: :mri
-    end
+# Kits
+gem 'authkit', git: 'https://github.com/jeffrafter/authkit'
+gem 'errorkit', git: 'https://github.com/jeffrafter/errorkit'
+gem 'notifykit', git: 'https://github.com/jeffrafter/notifykit'
+gem 'uikit', git: 'https://github.com/jeffrafter/uikit'
 
-    group :test do
-      # Make our specs watchable with beautiful progress bar
-      gem 'guard-rspec', require: false
-      gem 'fuubar'
-    end
+# These are a couple of my favs, if I forget them I regret it
+gem 'strapless'
+gem 'awesome_print'
 
-    group :test, :development do
-      # Get specs involved in this process
-      gem 'rspec-rails', '>= 3.5.0'
-      gem 'shoulda-matchers'
-      gem 'factory_girl_rails'
-    end
+# For tokens
+gem 'hashids'
 
-    # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
-    gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
+group :development, :test do
+  # Keeping the database fields in the models and specs makes things easier
+  gem 'annotate'
+  # Call 'byebug' anywhere in the code to stop execution and get a debugger console
+  gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]
+  # Get specs involved in this process
+  gem 'rspec-rails', '>= 3.5.0'
+  gem 'shoulda-matchers', require: false
+  gem 'factory_girl_rails'
+end
 
-    group :test, :development do
-    end
+group :development do
+  # Access an IRB console on exception pages or by using <%= console %> anywhere in the code.
+  gem 'web-console', '>= 3.3.0'
+  gem 'listen', '>= 3.0.5', '< 3.2'
+  # Spring speeds up development by keeping your application running in the background. Read more: https://github.com/rails/spring
+  gem 'spring'
+  gem 'spring-watcher-listen', '~> 2.0.0'
+end
 
-    group :test, :development do
-    end
-
+group :test do
+  # Make our specs watchable with beautiful progress bar
+  gem 'guard-rspec', require: false
+  # Better formatting of rspec
+  gem 'fuubar'
+end
+```
 
 Once you are done, you need to bundle the gems for your version of ruby. This will automatically figure out all of the dependencies:
 
     bundle
     
 > What if you are offline, working on an airplane desperately fighting bad wifi? You can install your gems from local sources using `bundle install --local`.
-
-### Shoulda matchers 
-
-Add the following to your `spec/rails_helper.rb`:
-
-```ruby
-require 'shoulda/matchers'
-
-Shoulda::Matchers.configure do |config|
-  config.integrate do |with|
-    with.test_framework :rspec
-    with.library :rails
-  end
-end
-```
     
 ## Documentation    
-    
+
 Long live the README.md:
 
     # Sample
@@ -182,7 +162,7 @@ Long live the README.md:
         git clone git@github.com:YOURUSERNAME/sample.git
 
     Once you have that you'll want to switch to that folder. This project was built using
-    Rails 4.2.x and Ruby 2.1.x Ruby versions are managed with rbenv and when switching to
+    Rails 5.1.x and Ruby 2.4.x Ruby versions are managed with rbenv and when switching to
     the folder you should receive a notice that you need to install ruby if it is missing.
 
     Once you have the code you should be able to bundle.
@@ -283,24 +263,23 @@ Setup the `.gitignore`. This will keep all of the user specific files (and sensi
     designs
     samples
     TODO.md
+    spec/examples.txt
 
     # Vagrant
     .vagrant
 
     # Ignore config (optional)
     config/application.yml
-    
+
     # You may want to ignore .env if you are using DotEnv
     # If you do ignore, you should have a .env.example
     .env
 
-    # In modern Rails you do not ignore database.yml 
+    # In modern Rails you do not ignore database.yml
     # or secrets.yml by default. But if you store secrets in them
     # you must not check them in to the repository
     # config/database.yml
     # config/secrets.yml
-
-
 
 Make an initial commit and push it to the server:
 
@@ -319,7 +298,6 @@ Modify the spec helper in `spec/spec_helper.rb`. By default the configuration is
 
 The default settings allow you to focus specs using `focus: true`, but it is helpful to add aliases to the `it` method. You can add these into a helper like `spec/support/aliases.rb`:
 
-
     RSpec.configure do |config|
       config.alias_example_to :fit, focus: true
       config.alias_example_to :pit, pending: true
@@ -337,6 +315,19 @@ Again, you can add this into a helper called `spec/support/factory_girl.rb`.
 In order to load all of the files in `support` you'll need to require them from the `spec/rails_helper.rb`. Make sure the following line is not commented out:
 
      Dir[Rails.root.join("spec/support/**/*.rb")].each { |f| require f }
+     
+If you are using `Shoulda` then in `rails_helper.rb` add the following: 
+
+    # Add additional requires below this line. Rails is not loaded until this point!
+    require 'shoulda/matchers'
+
+    Shoulda::Matchers.configure do |config|
+      config.integrate do |with|
+        with.test_framework :rspec
+        with.library :rails
+      end
+    end
+  
 
 ### Globally calling `describe`
 
@@ -499,3 +490,5 @@ Then in your models:
     class Product < ActiveRecord::Base
       monetize :price_cents # allow_nil: true
     end
+
+## Ping controller
