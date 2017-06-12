@@ -1,4 +1,4 @@
-# Phoenix
+# Phoenix & Elixir
 
 ## Pre-reqs
 
@@ -32,18 +32,24 @@ Get the latest:
 mix archive.install https://github.com/phoenixframework/archives/raw/master/phoenix_new.ez
 ```
 ​
-
 ## Hello World
 
 ```
 mix​​ ​​phoenix.new​​ ​​hello​
 cd hello
 mix ecto.create
+mix ecto.migrate
 mix phoenix.server
 ```
 
 > If you get the error **"\*\* (Mix) The database for Hello.Repo couldn't be created: FATAL (invalid_authorization_specification): role "postgres" does not exist"** then `createuser -s postgres`
 
+
+## Run tests
+
+```
+mix test
+```
 
 # Questions
 

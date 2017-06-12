@@ -8,12 +8,12 @@
 * Install XCode command line tools
 * Install XQuartz version of X11
 * Install [Homebrew](http://brew.sh)
-* Get dotfiles
-* Install [Mouapp](http://mouapp.com)
-* Install MacVim (via brew)
+* Install [Macdown](https://macdown.uranusjr.com/)
+* Install [Atom](https://atom.io/)
 * Install [Gitx](https://github.com/rowanj/gitx/releases)
-* Install caffeine (via app store)
+* Install [KeepingYouAwake](https://github.com/newmarcel/KeepingYouAwake)
 * Install [ImageOptim](https://imageoptim.com)
+* Get dotfiles
 * Make color invert accessibility shortcuts work
 * Remap capslock
 * Install crashplan

@@ -285,6 +285,7 @@ You'll also possibly want to disable VHOSTS
     dokku config:set "NO_VHOST=1"
 
 
+Test your ssl cert: https://www.ssllabs.com/ssltest/analyze.html?d=api.rpl.cat&latest
   
 # TODO
   

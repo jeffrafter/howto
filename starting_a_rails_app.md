@@ -34,30 +34,10 @@ You want to use the latest ruby there (this creates a .ruby-version file):
 
     rbenv local 2.4.1
 
-_Remove the test folder_. you want to use specs instead.
+_Remove the test folder_. you want to use specs instead (at least I do, you might like tests).
 
     rm -rf test
     
-## Config
-
-If you are sending email then you can use [Mailcatcher](http://mailcatcher.me) locally. This allows you to catch all email being sent from Rails and view it.
-
-> To install Mailcatcher just `gem install mailcatcher`. Then run `mailcatcher`. When running you can open a browser to [see the mails](http://localhost:1080).
-    
-You'll need to configure mailcatcher in `config/environments/development.rb`:
-      
-    # Mailcatcher
-    config.action_mailer.delivery_method = :smtp
-    config.action_mailer.smtp_settings = { :address => "localhost", :port => 1025, :domain => Rails.application.secrets.domain }
-    config.action_mailer.raise_delivery_errors = true
-    config.action_mailer.perform_deliveries = true
-
-This might be outdated:
-
-    # Fix the Safari 304 not modified bug (https://bugs.webkit.org/show_bug.cgi?id=32829)
-    config.middleware.delete Rack::ETag
-
-
 ## Gems
 
 Setup the `Gemfile`. This sample Gemfile has quite a few helpful defaults, but you should compare it with the generated Gemfile and pick and choose:
@@ -287,6 +267,30 @@ Make an initial commit and push it to the server:
     git commit -a -m "Initial commit"
     git push -u origin master
 
+## Config
+
+If you are sending email then you can use [Mailcatcher](http://mailcatcher.me) locally. This allows you to catch all email being sent from Rails and view it.
+
+> To install Mailcatcher just `gem install mailcatcher`. Then run `mailcatcher`. When running you can open a browser to [see the mails](http://localhost:1080).
+    
+You'll need to configure mailcatcher in `config/environments/development.rb`:
+      
+    # Mailcatcher
+    config.action_mailer.delivery_method = :smtp
+    config.action_mailer.smtp_settings = { :address => "localhost", :port => 1025, :domain => Rails.application.secrets.domain }
+    config.action_mailer.raise_delivery_errors = true
+    config.action_mailer.perform_deliveries = true
+
+This might be outdated:
+
+    # Fix the Safari 304 not modified bug (https://bugs.webkit.org/show_bug.cgi?id=32829)
+    config.middleware.delete Rack::ETag
+
+And in `config/application.rb`:
+
+    config.action_mailer.default_url_options = { host: Rails.application.secrets.domain }
+    config.action_mailer.asset_host = Rails.application.secrets.domain
+
 
 ## Setting up specs
 
@@ -402,10 +406,17 @@ Putting your secret keys and config keys into the `.env` will insure that they a
 Because these environment variables are loaded you can use them throughout your program. However, you may want to use them directly in your `config/secrets.yml`.
 
     defaults: &defaults
+      domain: 'example.com'
+      domain_friendly: 'example.com'
+      company_name: 'Example, Inc.'
+      company_email_legal: 'legal@example.com'
+      company_address: '231 S Buena Vista, Redlands, CA 92373'
+      from_email: <%= ENV["EMAIL_FROM_ADDRESS"] || "Example.com <support@example.com>" %>
       api_secret: <%= ENV["SOME_API_SECRET"] %>
 
     development:
       <<: *defaults
+      domain: 'localhost:3000'
       secret_key_base: cbed3176b89ca67d77601a133480b6e2770e66c76e04c0b5b71fd7c4a84635485c314421034b134602e064496da738c9cbb56d64926ebadd6a883047da65a3d5
 
     test:
@@ -490,5 +501,353 @@ Then in your models:
     class Product < ActiveRecord::Base
       monetize :price_cents # allow_nil: true
     end
+    
+## Bootstrap, fonts, views
 
-## Ping controller
+#### `app/views/application.html.erb`
+
+```
+<!DOCTYPE html>
+<!--[if IE 8]>         <html lang="en" class="ie ie8 lt-ie9"> <![endif]-->
+<!--[if IE 9]>         <html lang="en" class="ie ie9">        <![endif]-->
+<!--[if gt IE 9]><!--> <html lang="en">                       <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="theme-color" content="#ffffff">
+    <%= csrf_meta_tags %>
+    <title><%= content_for(:title) || "SAMPLE TITLE" %></title>
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <%= stylesheet_link_tag "application", :media => "all" %>
+    <%= yield :stylesheets %>
+    <link href="https://fonts.googleapis.com/css?family=Abril+Fatface|Nunito+Sans" rel="stylesheet">
+    <script src="https://use.fontawesome.com/c34f8e1c39.js"></script>
+    <% if Rails.env.production? %>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'SAMPLE GOOGLE ANALYTICS', 'https://sellers.community');
+      ga('send', 'pageview');
+    </script>
+    <% end %>
+  </head>
+  <body class="<%= "#{current_controller}-#{current_action}" %> <%= content_for :classes %> <%= 'flash' if flash.present? %>">
+    <%= render 'layouts/nav' %>
+
+    <% if flash.present? %>
+    <div class="container-fluid bg-success">
+      <div class="row">
+        <div class="container">
+          <div class="row">
+            <div class="col-lg-12">
+              <div id="flash">
+                <% flash.each do |type, msg| %>
+                <p class="flash <%= type %>"><%= msg %></p>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% end %>
+
+    <%= yield %>
+    <%= render 'layouts/footer' %>
+    <div id="lightbox-background"></div>
+  </body>
+
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+  <%= javascript_include_tag "application" %>
+  <%= yield :javascripts %>
+</html>
+```    
+
+#### `app/views/layouts/_nav.html.erb`
+
+```
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-default navbar-fixed-top">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="/">
+          <%= image_tag "sellers.png", style: "max-width:18px;display:inline-block" %><%= image_tag "sellers-community.png", style: "margin-left:16px;max-height:12px;display:inline-block;" %>
+        </a>
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+      </div>
+      <div id="navbar" class="collapse navbar-collapse">
+        <ul class="nav navbar-nav">
+          <li class="<%= 'active' if request.path == '/faq' %>"><a href="/faq">Questions &amp; Answers</a></li>
+          <% if logged_in? %>
+            <li class="<%= 'active' if request.path == '/logout' %>"><a href="/logout">Logout</a></li>
+            <li class="<%= 'active' if request.path == '/account' %>"><a href="/account"><span style="font-weight:700"><%= current_user.email %></span></a></li>
+          <% else %>
+            <li class="<%= 'active' if request.path == '/login' %>"><a href="/login">Login</a></li>
+            <li class="<%= 'active' if request.path == '/' %>"><a href="/signup"><button type="button" class="btn btn-primary"><span>Register now</span></button></a></li>
+          <% end %>
+        </ul>
+      </div>
+      <div id="navsep"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    </nav>
+```
+
+#### `app/views/layouts/_footer.html.erb`
+
+```
+<footer class="footer">
+  <div class="row">
+    <div class="col-lg-12">
+      <div class="copyright text-muted pull-right">
+        <span>Copyright &#169; <%= Time.now.year %>, SAMPLE. All rights reserved.</span>
+        <span class="policies">
+          <a href="/privacy">Privacy Policy</a> |
+          <a href="/terms">Terms of Service</a>
+        </span>
+      </div>
+    </div>
+  </div>
+</footer>
+```
+
+> Something about css... rename application.css to application.scss (if you want to have the @import work
+
+
+You'll need some helpers in `/app/helpers/application_helper.rb`
+
+```
+module ApplicationHelper
+  def current_controller
+    params[:controller]
+  end
+
+  def current_action
+    params[:action]
+  end
+
+  def logged_in?
+    false
+  end
+end
+```
+
+## Welcome controller
+
+```
+rails g controller pages
+```
+
+```
+Running via Spring preloader in process 25291
+      create  app/controllers/pages_controller.rb
+      invoke  erb
+      create    app/views/pages
+      invoke  rspec
+      create    spec/controllers/pages_controller_spec.rb
+      invoke  helper
+      create    app/helpers/pages_helper.rb
+      invoke    rspec
+      create      spec/helpers/pages_helper_spec.rb
+      invoke  assets
+      invoke    js
+      create      app/assets/javascripts/pages.js
+      invoke    scss
+      create      app/assets/stylesheets/pages.scss
+```
+
+Now add a route (in `config/routes.rb`):
+
+```
+  root 'pages#welcome'
+```
+
+Now add the corresponding view:
+
+`/app/views/pages/welcome.html.erb`
+
+```
+<div id="welcome">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6 page-header">
+        <h1>Welcome</h1>
+        <p class="lead">
+          You might see something here you love.
+        </p>
+        <p>
+          No, seriously.
+        </p>
+      </div>
+      <div class="col-md-6 page-header">
+      </div>
+      <div class="col-md-12">
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+#### Forms
+
+Add the following to your `Gemfile`:
+
+```
+# Forms
+gem 'bootstrap_form'
+```
+
+and then `bundle`.
+
+For your signup form you can use this:
+
+```
+<div id="contact">
+  <div class="container">
+    <div class="inner">
+      <div class="row">
+        <div class="col-lg-8 col-md-8 col-sm-8">
+          <div class="page-header">
+            <h1>Create an account</h1>
+            <p class="lead">Make an account.</p>
+            <p>Already have an account? <a href="/login">Log in</a>.</p>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-lg-6 col-md-6 col-sm-6">
+          <% if @signup.errors.any? %>
+            <div id="error_explanation">
+              <div class="alert alert-error">
+                The form contains <%= pluralize(@signup.errors.count, "error") %>.
+              </div>
+              <ul>
+              <% @signup.errors.full_messages.each do |msg| %>
+                <li>* <%= msg %></li>
+              <% end %>
+              </ul>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-lg-5 col-md-5 col-sm-5 required">
+          <%= bootstrap_form_for @signup, as: :signup, url: signup_path do |f| %>
+            <%= f.text_field "first_name", label: "First name", placeholder: "First name"  %>
+            <%= f.text_field "last_name", label: "Last name", placeholder: "Last name"  %>
+            <%= f.telephone_field "phone_number", placeholder: "555-555-5555" %>
+            <%= f.email_field "email", placeholder: "Email address" %>
+            <%= f.time_zone_select 'time_zone', ActiveSupport::TimeZone.us_zones, :default => "Pacific Time (US & Canada)" %>
+            <br>
+            <%= f.password_field "password", placeholder: "Password" %>
+            <%= f.password_field "password_confirmation", placeholder: "Re-type password" %>
+            <div class="form-group">
+              <label for="remember_me" class="control-label"><%= check_box_tag :remember_me, "1", true %>
+              Keep me signed in on this computer</label>
+            </div>
+            <br>
+            <%= f.primary "Sign up" %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+
+## Favicon
+
+http://realfavicongenerator.net/
+
+## Cloudflare
+
+## Auditing and Papertrail
+
+Sometimes when you make changes you want a history of what changed. PaperTrail offers you an audit log:
+
+https://github.com/airblade/paper_trail
+
+Add PaperTrail to your Gemfile.
+
+```ruby
+gem 'paper_trail'
+```
+
+Add a `versions` table to your database and an initializer file for configuration:
+
+```bash
+bundle exec rails generate paper_trail:install --with-associations
+bundle exec rake db:migrate
+```
+
+If using `rails_admin`, you must enable the experimental Associations feature. For more information on this generator, see section 5.c. Generators.
+
+Add `has_paper_trail` to the models you want to track.
+
+```ruby
+class Widget < ActiveRecord::Base
+  has_paper_trail
+end
+```
+
+If your controllers have a `current_user` method, you can easily track who is responsible for changes by adding a controller callback.
+
+```ruby
+class ApplicationController
+  before_action :set_paper_trail_whodunnit
+end
+```
+
+## Admin
+
+https://github.com/sferik/rails_admin
+
+1. On your gemfile: gem 'rails_admin', '~> 1.2'
+2. Run bundle install
+3. Run rails g rails_admin:install
+4. Provide a namespace for the routes when asked
+
+Start a server rails s and administer your data at /admin. (if you chose default namespace: /admin)
+
+You'll need to edit the config at `config/initializers/rails_admin.rb`. First, add in a controller reference:
+
+```ruby
+## Controller
+config.parent_controller = "ApplicationController"
+```
+
+To authenticate:
+
+```ruby
+## Auth
+config.current_user_method(&:current_user)
+```
+  
+To authorize, add a new field to your User model called `admin` with a default `false`.
+
+```ruby
+config.authorize_with do
+  redirect_to main_app.root_path unless current_user.admin?
+end
+```
+
+Make sure you active the `PaperTrail` support:
+
+```ruby
+config.audit_with :paper_trail, 'User', 'PaperTrail::Version' # PaperTrail >= 3.0.0
+```
