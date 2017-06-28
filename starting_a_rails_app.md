@@ -11,8 +11,8 @@ _Get your ruby ready_. I use rbenv and ruby-build. There are a few other options
     rbenv install -l
 
     # Install the newest
-    rbenv install 2.4.1
-    rbenv global 2.4.1
+    rbenv install 2.5.1
+    rbenv global 2.5.1
     gem install rake rails bundler foreman mailcatcher   
     
 _Install your basic gems_. If you have just installed a new version of ruby you might need to `gem install bundler rake rails` 
@@ -32,7 +32,7 @@ In this case my application folder is /projects/sample. This is my "Rails Root" 
 
 You want to use the latest ruby there (this creates a .ruby-version file):
 
-    rbenv local 2.4.1
+    rbenv local 2.5.1
 
 _Remove the test folder_. you want to use specs instead (at least I do, you might like tests).
 
@@ -44,7 +44,7 @@ Setup the `Gemfile`. This sample Gemfile has quite a few helpful defaults, but y
 
 ```ruby
 # You should specify the ruby version
-ruby "2.4.1"
+ruby "2.5.1"
 
 source 'https://rubygems.org'
 
