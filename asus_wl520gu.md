@@ -57,6 +57,13 @@ For some reason the local user doesn't own the folder `/usr/local`. There is pro
 Most of the work I have done with OpenWRT uses the 8.09 version (Kamikaze). The 8.09.2 version can be downloaded here: [https://downloads.openwrt.org/kamikaze/8.09.2/](https://downloads.openwrt.org/kamikaze/8.09.2/). Technically OpenWRT has advanced and the version specified is obsolete (but it works without kernel errors on my target device so I like it).
 
     svn co svn://svn.openwrt.org/openwrt/tags/8.09.2 openwrt
+    
+Or:
+
+    wget https://downloads.openwrt.org/kamikaze/8.09.2/kamikaze_8.09.2_source.tar.bz2
+    bzip2 -dk kamikaze_8.09.2_source.tar.bz2
+    tar -xvf kamikaze_8.09.2_source.tar
+    mv 8.09.2 openwrt     
 
 Now that you've go the source go to it:
 
