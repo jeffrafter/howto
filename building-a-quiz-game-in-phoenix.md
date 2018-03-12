@@ -1340,7 +1340,12 @@ I didn't use `Presence` in my work mostly because I didn't need the CRDT aspects
 * [`Phoenix.Channel`](https://hexdocs.pm/phoenix/Phoenix.Channel.html)
 * [`Phoenix.Socket`](https://hexdocs.pm/phoenix/Phoenix.Socket.html)
 
+## Testing
+
+* [Testing Phoenix Websockets](https://quickleft.com/blog/testing-phoenix-websockets/)
 
 
 
+## Scaling
 
+* [Scaling Discord App](https://blog.discordapp.com/scaling-elixir-f9b8e1e7c29b)
